@@ -1,36 +1,36 @@
-['f2f_009',
- 'f2f_010',
- 'f2f_011',
- 'f2f_012',
- 'f2f_013',
- 'f2f_014',
- 'f2f_015',
- 'f2f_018',
- 'f2f_021',
- 'f2f_022',
- 'f2f_024',
- 'f2f_025',
- 'f2f_026',
- 'f2f_027',
- 'f2f_028',
- 'f2f_029',
- 'f2f_030',
- 'f2f_034',
- 'f2f_036',
- 'f2f_037',
- 'f2f_038',
+['f2f_009',  # same-day erm found for brainstem_220
+ 'f2f_010',  # possible issue with HPI
+ 'f2f_011',  #
+ 'f2f_012',  #
+ 'f2f_013',  #
+ 'f2f_014',  # irregularly named split file?
+ 'f2f_015',  #
+ 'f2f_018',  #
+ 'f2f_021',  #
+ 'f2f_022',  # possibly missing split (but enough data)
+ 'f2f_024',  # used run 02
+ 'f2f_025',  # used next-day erm
+ 'f2f_026',  # used run 02; I made a note to check out the HPI
+ 'f2f_027',  #
+ 'f2f_028',  # split file misnamed?
+ 'f2f_029',  # erm found in dc_lowfreq/f_to_f
+ 'f2f_030',  # used run 02
+ 'f2f_034',  # used run 01
+ 'f2f_036',  #
+ 'f2f_037',  # used run 01
+ 'f2f_038',  # used run 01
  'f2f_041',  # bad coil fits
- 'f2f_102',
- 'f2f_103',
- 'f2f_104',
- 'f2f_106',
- 'f2f_107',
- 'f2f_108',
- 'f2f_111',
- 'f2f_112',
- 'f2f_114',
- 'f2f_115',
- 'f2f_116',
- 'f2f_117',
- 'f2f_118',
- 'f2f_119']
+ 'f2f_102',  #
+ 'f2f_103',  #
+ 'f2f_104',  #
+ 'f2f_106',  #
+ 'f2f_107',  #
+ 'f2f_108',  #
+ 'f2f_111',  # used 10/16 data
+ 'f2f_112',  #
+ 'f2f_114',  #
+ 'f2f_115',  #
+ 'f2f_116',  # used 11/03 data
+ 'f2f_117',  # used run 01
+ 'f2f_118',  #
+ 'f2f_119']  #
