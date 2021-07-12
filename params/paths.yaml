@@ -1,0 +1,3 @@
+data_root: '/data/ftof/data'
+subjects_dir: '/data/ftof/anat'
+results_dir: '/data/ftof/results'
