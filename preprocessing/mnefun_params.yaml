@@ -5,10 +5,8 @@ fetch_raw:
     run_names: ['%s']
     runs_empty: ['%s_erm']
     subject_run_indices: null
-
-scoring:
-    score: null
-    # XXX list_dir: lists_1sec
+    structurals: null
+    dates: null
 
 preprocessing:
     multithreading:
@@ -56,7 +54,6 @@ preprocessing:
             f2f_117: [MEG0313, MEG1743, MEG2542, MEG0743, MEG1442, MEG1522, MEG1321, MEG1521, MEG2341],
             f2f_118: [MEG1112, MEG1743, MEG2142, MEG2542, MEG2643, MEG1521, MEG1741],
             f2f_119: [MEG0313, MEG1743, MEG2142, MEG2542, MEG2643, MEG1521, MEG1741, MEG2341],
-            # XXX f2f_107sim2: [MEG0332, MEG1743, MEG2542],
         }
         mf_autobad: True
         mf_autobad_type: python
@@ -98,7 +95,7 @@ preprocessing:
     filtering:
         filter_length: auto
         fir_design: firwin
-        lp_cut: 80.
+        lp_cut: &lp_cut 80.
         lp_trans: 3.
         phase: zero
 
@@ -170,7 +167,7 @@ preprocessing:
         force_erm_cov_rank_full: False
 
     forward:
-        bem_type: 5120
+        bem_type: '5120'
         src: oct6
         src_pos: 5
         # XXX forward_dir: forward_surf
@@ -189,7 +186,3 @@ report:
     source_alignment: True
     source: False
     sensor: {analysis: All, name: all, times: [5, 10, 20, 40]}
-    whitening: [
-      {analysis: Conditions, name: attend, cov: '%s-80-sss-cov.fif'},
-      {analysis: Conditions, name: ignore, cov: '%s-80-sss-cov.fif'},
-    ]
