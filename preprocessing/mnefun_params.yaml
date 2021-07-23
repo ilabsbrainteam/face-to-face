@@ -75,7 +75,6 @@ preprocessing:
         translation_limit: 0.1              # funloc uses 0.0001
 
     sss:
-        # XXX movecomp: inter
         sss_type: python
         hp_type: python
         filter_chpi: True
@@ -158,7 +157,6 @@ preprocessing:
         must_match: [[], [0, 1]]
         # other
         epochs_proj: delayed
-        # XXX epochs_prefix: All_1sec
 
     covariance:
         cov_method: shrunk
@@ -170,13 +168,11 @@ preprocessing:
         bem_type: '5120'
         src: oct6
         src_pos: 5
-        # XXX forward_dir: forward_surf
-        # XXX trans_dir: raw_fif
+        trans_dir: raw_fif
 
     inverse:
         inv_names: ['%s']
         inv_runs: [0]
-        # XXX inverse_dir: inverse_surf
 
 report:
     bem: False
