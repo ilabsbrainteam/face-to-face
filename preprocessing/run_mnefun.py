@@ -34,13 +34,13 @@ mnefun.do_processing(
     params,
     fetch_raw=False,      # go get the Raw files
     do_sss=True,          # tSSS / maxwell filtering
-    do_score=True,        # run scoring function to extract events
-    gen_ssp=True,         # create SSP projectors
-    apply_ssp=True,       # apply SSP projectors
-    write_epochs=True,    # epoching & filtering
-    gen_covs=True,        # make covariance
-    gen_fwd=True,         # generate fwd model
-    gen_inv=True,         # generate inverse
-    gen_report=True,      # print report
+    do_score=False,       # run scoring function to extract events
+    gen_ssp=False,        # create SSP projectors
+    apply_ssp=False,      # apply SSP projectors
+    write_epochs=False,   # epoching & filtering
+    gen_covs=False,       # make covariance
+    gen_fwd=False,        # generate fwd model
+    gen_inv=False,        # generate inverse
+    gen_report=False,     # print report
     print_status=True     # show status
 )
