@@ -63,7 +63,8 @@ def f2f_score(p, subjects):
                     np.zeros_like(offset_samp),
                     np.full_like(offset_samp, new_event_code)
                 ))
-                new_events = np.vstack(new_events, offset_events)
+                new_events = np.vstack((new_events, offset_events))
             # make sure subsequent trials don't overlap too much
-            assert np.all(np.diff(new_events[:, 0]) >= spacing * sfreq)
+            assert np.all(np.diff(new_events[:, 0]) >=
+                          np.floor(spacing * sfreq))
             mne.write_events(event_fname, new_events)
