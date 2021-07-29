@@ -150,7 +150,7 @@ preprocessing:
         in_names: &in_names
           - attend
           - ignore
-        in_numbers: [23, 25]
+        in_numbers: [31, 55]
         out_names: [['all'], *in_names]
         out_numbers: [[1, 1],  # combine all trials
                       [1, 2]]  # do attend/ignore separately
