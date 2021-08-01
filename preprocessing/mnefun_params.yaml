@@ -5,7 +5,6 @@ fetch_raw:
     run_names: ['%s']
     runs_empty: ['%s_erm']
     subject_run_indices: null
-    structurals: null
     dates: null
 
 preprocessing:

@@ -2,4 +2,4 @@
 
 __version__ = '0.1'
 
-from .f2f_helpers import load_paths, load_subjects  # noqa
+from .f2f_helpers import load_paths, load_subjects, scale_mri  # noqa
