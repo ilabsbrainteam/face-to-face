@@ -28,6 +28,13 @@ def load_subjects(skip=True):
     return subjects
 
 
+def load_params(fname):
+    """Load parameters from YAML file."""
+    with open(fname, 'r') as f:
+        params = yamload(f)
+    return params
+
+
 def scale_mri(subject, subjects_dir, subject_from, target_file):
     """Scale surrogate MRI to approximate subject headshape."""
     # skip if already exists (subj-specific MRI or past surrogate scaling)
