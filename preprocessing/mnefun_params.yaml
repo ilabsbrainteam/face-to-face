@@ -93,8 +93,10 @@ preprocessing:
     filtering:
         filter_length: auto
         fir_design: firwin
-        lp_cut: &lp_cut 80.
-        lp_trans: 3.
+        hp_cut: 4.          #  \
+        lp_cut: &lp_cut 8.  #   〉 theta band
+        hp_trans: 2.        #  /
+        lp_trans: 2.        # /
         phase: zero
 
     ssp:
