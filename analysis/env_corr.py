@@ -30,8 +30,10 @@ inverse_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
 orientation_constraint = (
     '' if inverse_params['orientation_constraint'] == 'loose' else
     f"-{inverse_params['orientation_constraint']}")
-params = mnefun.read_params('mnefun_params.yaml')
-lp_cut = int(params.lp_cut)
+
+mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
+mnefun_params = mnefun.read_params(mnefun_params_fname)
+lp_cut = int(mnefun_params.lp_cut)
 
 # load ROIs
 rois = load_params(os.path.join(param_dir, 'rois.yaml'))
