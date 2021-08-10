@@ -1,0 +1,3 @@
+method: dSPM                   # dSPM, MNE, sLORETA, eLORETA
+orientation_constraint: free   # free, loose, fixed
+estimate_type: magnitude       # vector, magnitude, normal
