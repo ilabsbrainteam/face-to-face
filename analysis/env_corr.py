@@ -13,7 +13,6 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.colors import to_rgba
 import mne
 from mne.minimum_norm import apply_inverse_epochs
 import mnefun
