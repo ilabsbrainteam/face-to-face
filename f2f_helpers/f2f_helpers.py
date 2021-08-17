@@ -35,11 +35,14 @@ def load_params(fname):
     return params
 
 
-def scale_mri(subject, subjects_dir, subject_from, target_file):
+def scale_mri(subject, subjects_dir, subject_from, target_file,
+              overwrite=False):
     """Scale surrogate MRI to approximate subject headshape."""
     # skip if already exists (subj-specific MRI or past surrogate scaling)
     target_path = os.path.join(subjects_dir, subject, 'mri', target_file)
-    if os.path.exists(target_path):
+    if os.path.exists(target_path) and not overwrite:
+        raise RuntimeWarning(f'Target path {target_path} exists but '
+                             'force=False, no MRI scaling will occur.')
         return
     # read scaling config
     config = mne.coreg.read_mri_cfg(subject, subjects_dir)
@@ -50,9 +53,9 @@ def scale_mri(subject, subjects_dir, subject_from, target_file):
                         subject_to=subject,
                         subjects_dir=subjects_dir,
                         scale=config['scale'],
-                        labels=False,
+                        labels=True,
                         annot=False,
-                        overwrite=True)
+                        overwrite=overwrite)
     # make BEM solution
     bem_in = os.path.join(
         subjects_dir, subject, 'bem', f'{subject}-5120-bem.fif')

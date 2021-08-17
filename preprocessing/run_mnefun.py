@@ -7,13 +7,16 @@ authors: Daniel McCloy
 license: MIT
 """
 
+import os
 import mnefun
-from f2f_helpers import load_paths, load_subjects, scale_mri
+from f2f_helpers import load_paths, load_subjects, load_params, scale_mri
 from f2f_score import f2f_score
 
 # load general params
 data_root, subjects_dir, _ = load_paths()
+param_dir = os.path.join('..', 'params')
 subjects = load_subjects()
+surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 
 # load mnefun params from YAML
 params = mnefun.read_params('mnefun_params.yaml')
@@ -32,14 +35,14 @@ params.report['whitening'] = [dict(name=c, **kwargs) for c in params.in_names]
 
 # scale the surrogate MRI to each subj (skipped automatically if already done)
 for subject in subjects:
-    scale_mri(subject, subjects_dir, subject_from='14mo_surr',
+    scale_mri(subject, subjects_dir, subject_from=surrogate,
               target_file='T1.mgz')
 
 # run it
 mnefun.do_processing(
     params,
     fetch_raw=False,      # go get the Raw files
-    do_sss=True,          # tSSS / maxwell filtering
+    do_sss=False,         # tSSS / maxwell filtering
     do_score=False,       # run scoring function to extract events
     gen_ssp=False,        # create SSP projectors
     apply_ssp=False,      # apply SSP projectors
