@@ -3,7 +3,6 @@
 import os
 import yaml
 from functools import partial
-import mne
 
 paramdir = os.path.join('..', 'params')
 yamload = partial(yaml.load, Loader=yaml.FullLoader)
@@ -33,33 +32,3 @@ def load_params(fname):
     with open(fname, 'r') as f:
         params = yamload(f)
     return params
-
-
-def scale_mri(subject, subjects_dir, subject_from, target_file,
-              overwrite=False):
-    """Scale surrogate MRI to approximate subject headshape."""
-    # skip if already exists (subj-specific MRI or past surrogate scaling)
-    target_path = os.path.join(subjects_dir, subject, 'mri', target_file)
-    if os.path.exists(target_path) and not overwrite:
-        raise RuntimeWarning(f'Target path {target_path} exists but '
-                             'force=False, no MRI scaling will occur.')
-        return
-    # read scaling config
-    config = mne.coreg.read_mri_cfg(subject, subjects_dir)
-    assert config.pop('n_params') in (1, 3)
-    assert config['subject_from'] == subject_from
-    # do MRI scaling
-    mne.coreg.scale_mri(subject_from=subject_from,
-                        subject_to=subject,
-                        subjects_dir=subjects_dir,
-                        scale=config['scale'],
-                        labels=True,
-                        annot=False,
-                        overwrite=overwrite)
-    # make BEM solution
-    bem_in = os.path.join(
-        subjects_dir, subject, 'bem', f'{subject}-5120-bem.fif')
-    bem_out = os.path.join(
-        subjects_dir, subject, 'bem', f'{subject}-5120-bem-sol.fif')
-    solution = mne.make_bem_solution(bem_in)
-    mne.write_bem_solution(bem_out, solution)

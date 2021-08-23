@@ -9,7 +9,7 @@ license: MIT
 
 import os
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params, scale_mri
+from f2f_helpers import load_paths, load_subjects, load_params
 from f2f_score import f2f_score
 
 # load general params
@@ -32,11 +32,6 @@ params.work_dir = data_root
 # set additional params: report
 kwargs = dict(analysis='Conditions', cov=f'%s-{params.lp_cut}-sss-cov.fif')
 params.report['whitening'] = [dict(name=c, **kwargs) for c in params.in_names]
-
-# scale the surrogate MRI to each subj (skipped automatically if already done)
-for subject in subjects:
-    scale_mri(subject, subjects_dir, subject_from=surrogate,
-              target_file='T1.mgz')
 
 # run it
 mnefun.do_processing(
