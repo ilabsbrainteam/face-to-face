@@ -166,7 +166,7 @@ preprocessing:
         force_erm_cov_rank_full: False
 
     forward:
-        bem_type: '5120'
+        bem_type: '5120-5120-5120'
         src: oct6
         src_pos: 5
         trans_dir: raw_fif
@@ -182,4 +182,4 @@ report:
     good_hpi_count: True
     source_alignment: True
     source: False
-    sensor: {analysis: All, name: all, times: [5, 10, 20, 40]}
+    sensor: {analysis: All, name: all}
