@@ -53,12 +53,14 @@ for subj in subjects:
     # load labels
     labels = get_roi_labels(subj, param_dir)
     # load epochs
-    _dir = os.path.join(data_root, subj, 'epochs')
+    _dir = os.path.join(data_root, subj)
     fname = f'All_{lp_cut}-sss_{subj}-epo.fif'
-    epochs = mne.read_epochs(os.path.join(_dir, fname), preload=False)
+    epochs = mne.read_epochs(os.path.join(_dir, 'epochs', fname),
+                             preload=False)
     # load inverse
     inverse_fname = f'{subj}-{lp_cut}-sss-meg{orientation_constraint}-inv.fif'
-    inverse_operator = mne.minimum_norm.read_inverse_operator(inverse_fname)
+    inverse_fpath = os.path.join(_dir, 'inverse', inverse_fname)
+    inverse_operator = mne.minimum_norm.read_inverse_operator(inverse_fpath)
     # apply inverse
     snr = 1.0  # assume lower SNR for single epochs
     lambda2 = 1.0 / snr ** 2
