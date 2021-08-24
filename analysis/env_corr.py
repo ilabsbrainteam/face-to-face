@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.minimum_norm import apply_inverse_epochs
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params
+from f2f_helpers import load_paths, load_subjects, load_params, get_roi_labels
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -36,62 +36,6 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-# colors
-label_colors = {
-    'caudalanteriorcingulate': '#D1BBD7',  # purple, light
-    'inferiorparietal': '#4EB265',  # green, dark
-    'inferiortemporal': '#AE76A3',  # purple
-    'insula': '#CAE0AB',  # green, light
-    'lateralorbitofrontal': '#882E72',  # purple, dark
-    'medialorbitofrontal': '#F7F056',  # yellow
-    'middletemporal': '#1965B0',  # blue, dark
-    'posteriorcingulate': '#F4A736',  # orange, light
-    'rostralanteriorcingulate': '#5289C7',  # blue
-    'superiorparietal': '#E8601C',  # orange
-    'superiortemporal': '#7BAFDE',  # blue, light
-    'temporalpole': '#DC050C',  # red
-    'inferiorfrontal': '#90C987',  # green pars{opercular|orbital|triangular}is
-}
-
-# '#D1BBD7',  # purple, light
-# '#AE76A3',  # purple
-# '#882E72',  # purple, dark
-# '#1965B0',  # blue, dark
-# '#5289C7',  # blue
-# '#7BAFDE',  # blue, light
-# '#4EB265',  # green, dark
-# '#90C987',  # green
-# '#CAE0AB',  # green, light
-# '#F7F056',  # yellow
-# '#F4A736',  # orange, light
-# '#E8601C',  # orange
-# '#DC050C',  # red
-
-# load ROIs
-rois = load_params(os.path.join(param_dir, 'rois.yaml'))
-rois_to_merge = ('parsorbitalis', 'parsopercularis', 'parstriangularis')
-rois = set(rois) - set(rois_to_merge)
-roi_regexp = '|'.join(rois)
-# get regular labels
-labels = mne.read_labels_from_annot(
-    'ANTS6-0Months3T', parc='aparc', subjects_dir=subjects_dir,
-    regexp=roi_regexp)
-# get merged labels
-for h in ('lh', 'rh'):
-    _regexp = '|'.join((f'{roi}-{h}' for roi in rois_to_merge))
-    _labels = mne.read_labels_from_annot(
-        'ANTS6-0Months3T', parc='aparc', subjects_dir=subjects_dir,
-        regexp=_regexp)
-    merged_label = sum(_labels[1:], _labels[0])
-    labels.append(merged_label)
-# set label colors
-for label in labels:
-    if '+' in label.name:  # merged label
-        label.color = label_colors['inferiorfrontal']
-    else:
-        label.color = label_colors[label.name.rsplit('-', maxsplit=1)[0]]
-
-
 # find out how many events we can realistically keep
 n_good_epochs = dict(attend=dict(), ignore=dict())
 for subj in subjects:
@@ -106,6 +50,8 @@ df = pd.DataFrame.from_dict(n_good_epochs)
 n_good_overall = df.min()  # XXX TODO
 
 for subj in subjects:
+    # load labels
+    labels = get_roi_labels(subj, param_dir)
     # load epochs
     _dir = os.path.join(data_root, subj, 'epochs')
     fname = f'All_{lp_cut}-sss_{subj}-epo.fif'
