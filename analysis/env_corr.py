@@ -65,7 +65,8 @@ for subj in subjects:
     snr = 1.0  # assume lower SNR for single epochs
     lambda2 = 1.0 / snr ** 2
     method = inverse_params['method']
-    pick_ori = inverse_params['estimate_type']
+    pick_ori = (None if inverse_params['estimate_type'] == 'magnitude' else
+                inverse_params['estimate_type'])
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                                 pick_ori=pick_ori, return_generator=True)
     # get average signal in each label (mean_flip reduces signal cancellation)
