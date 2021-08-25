@@ -17,7 +17,7 @@ param_dir = os.path.join('..', 'params')
 subjects = load_subjects()
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 
-scaling_already_done = True
+scaling_already_done = False
 
 # generate the MRI config files for scaling surrogate MRI to individual
 # subject's digitization points. Then scale the MRI and make the BEM solution.
@@ -40,7 +40,7 @@ for subject in subjects:
     mne.write_trans(trans_fname, coreg.trans)
     # this step takes a while
     mne.scale_mri(subject_from=surrogate, subject_to=subject,
-                  scale=coreg.scale, overwrite=False,
+                  scale=coreg.scale, overwrite=True, labels=True, annot=True,
                   subjects_dir=subjects_dir, verbose=True)
     # make BEM solution
     bem_in = os.path.join(
