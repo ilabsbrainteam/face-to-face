@@ -34,7 +34,12 @@ for subject in subjects:
         info, subject=surrogate, subjects_dir=subjects_dir)
     coreg.set_scale_mode('3-axis')
     coreg.set_fid_match('matched')
-    coreg.fit_icp(n_iterations=30)
+    coreg.fit_fiducials()
+    coreg.fit_icp(n_iterations=10)
+    coreg.omit_head_shape_points(distance=10e-3)  # 10 mm
+    coreg.fit_icp(n_iterations=10)
+    coreg.omit_head_shape_points(distance=5e-3)  # 5 mm
+    coreg.fit_icp(n_iterations=10)
     # save the trans file
     trans_fname = os.path.join(this_subj_dir, f'{subject}-trans.fif')
     mne.write_trans(trans_fname, coreg.trans)
