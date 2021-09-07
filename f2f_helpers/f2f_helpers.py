@@ -69,11 +69,9 @@ def get_roi_labels(subject, param_dir):
             subject, parc='aparc', subjects_dir=subjects_dir,
             regexp=_regexp)
         merged_label = sum(_labels[1:], _labels[0])
+        merged_label.name = f'inferiorfrontal-{h}'
         labels.append(merged_label)
     # set label colors
     for label in labels:
-        if '+' in label.name:  # merged label
-            label.color = label_colors['inferiorfrontal']
-        else:
-            label.color = label_colors[label.name.rsplit('-', maxsplit=1)[0]]
+        label.color = label_colors[label.name.rsplit('-', maxsplit=1)[0]]
     return labels
