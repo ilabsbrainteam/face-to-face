@@ -9,7 +9,7 @@ fetch_raw:
 
 preprocessing:
     multithreading:
-        n_jobs: 10
+        n_jobs: 12
         n_jobs_mkl: 2
         n_jobs_fir: cuda
         n_jobs_resample: cuda
@@ -93,10 +93,8 @@ preprocessing:
     filtering:
         filter_length: auto
         fir_design: firwin
-        hp_cut: 4.          #  \
-        lp_cut: &lp_cut 8.  #   〉 theta band
-        hp_trans: 2.        #  /
-        lp_trans: 2.        # /
+        lp_cut: &lp_cut 80.
+        lp_trans: 3.
         phase: zero
 
     ssp:

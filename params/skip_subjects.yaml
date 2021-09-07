@@ -13,6 +13,6 @@
  'f2f_112',
  'f2f_115',
  'f2f_118',
- 'f2f_018',  # too few good epochs
- 'f2f_029',  # too few good epochs
+# 'f2f_018',  # too few good epochs (when filtered 4-8 Hz)
+# 'f2f_029',  # too few good epochs (when filtered 4-8 Hz)
  ]
