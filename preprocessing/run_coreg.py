@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-mnefun preprocessing of face-to-face data (for connectivity analysis).
+Automated coregistration of face-to-face dataset.
 
 authors: Daniel McCloy
 license: MIT
