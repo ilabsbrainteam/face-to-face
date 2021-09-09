@@ -25,7 +25,7 @@ params = mnefun.read_params('mnefun_params.yaml')
 params.score = f2f_score
 params.subjects_dir = subjects_dir
 params.subjects = subjects
-params.structurals = subjects
+params.structurals = params.subjects
 params.subject_indices = list(range(len(params.subjects)))
 params.work_dir = data_root
 
