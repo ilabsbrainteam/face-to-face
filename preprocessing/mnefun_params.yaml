@@ -93,8 +93,7 @@ preprocessing:
     filtering:
         filter_length: auto
         fir_design: firwin
-        lp_cut: &lp_cut 80.
-        lp_trans: 3.
+        lp_cut: &lp_cut 50.
         phase: zero
 
     ssp:
