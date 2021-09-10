@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Envelope correlation or spectral connectivity (wpli) of face-to-face data
-(for connectivity analysis).
+Envelope correlation of face-to-face data, in several bands.
 
 authors: Daniel McCloy
 license: MIT
@@ -16,9 +15,7 @@ import mnefun
 from f2f_helpers import load_paths, load_subjects, load_params
 
 # flags
-new_sfreq = 1000
 cov_type = 'erm'  # 'erm' or 'baseline'
-freq_band = 'theta'
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()

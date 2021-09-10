@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Envelope correlation or spectral connectivity (wpli) of face-to-face data
-(for connectivity analysis).
+Epoching of face-to-face data, suitable for connectivity analysis.
 
 authors: Daniel McCloy
 license: MIT
@@ -20,7 +19,6 @@ new_sfreq = 1000
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
-param_dir = os.path.join('..', 'params')
 epo_dir = os.path.join(results_dir, 'epochs')
 for _dir in (epo_dir,):
     os.makedirs(_dir, exist_ok=True)
