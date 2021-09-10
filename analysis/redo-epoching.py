@@ -57,7 +57,7 @@ for subj in subjects:
         reject = read_hdf5(os.path.join(_dir, 'epochs', reject_fname))
         # epoch
         epochs = mne.Epochs(filtered_raw, events=events, event_id=event_id,
-                            reject=reject, baseline=(None, None), preload=True)
+                            reject=reject, baseline=None, preload=True)
         del filtered_raw
         # truncate to same number of epochs per subject
         new_eve = np.empty((0, 3), dtype=int)
