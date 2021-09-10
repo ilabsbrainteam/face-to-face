@@ -13,7 +13,7 @@ import mne
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne_connectivity import envelope_correlation
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params, get_roi_labels
+from f2f_helpers import load_paths, load_subjects, load_params
 
 # flags
 new_sfreq = 1000
@@ -43,8 +43,9 @@ freq_bands = ('delta', 'theta', 'beta')
 
 for subj in subjects:
     # load labels
-    labels = get_roi_labels(subj, param_dir)
-    label_names = [lab.name for lab in labels]
+    labels = mne.read_labels_from_annot(subj, 'aparc',
+                                        subjects_dir=subjects_dir)
+    label_names = [label.name for label in labels]
     # load inverse
     inv_fnames = dict(
         erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
