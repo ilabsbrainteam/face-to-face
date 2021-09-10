@@ -64,6 +64,8 @@ for subj in subjects:
         # loop over conditions
         for condition in epochs.event_id:
             this_epochs = epochs[condition]
+            # get envelope (faster if we do it before inverse)
+            epochs.apply_hilbert()
             # apply inverse
             stcs = apply_inverse_epochs(this_epochs, inv_operator, lambda2,
                                         method, pick_ori=pick_ori,
