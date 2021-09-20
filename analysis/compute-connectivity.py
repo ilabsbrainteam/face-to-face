@@ -16,6 +16,8 @@ from f2f_helpers import load_paths, load_subjects, load_params
 
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
+# entorhinal → "no vertices in label" error
+skip_labels = tuple(f'entorhinal-{hemi}' for hemi in ('lh', 'rh'))
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -40,7 +42,8 @@ freq_bands = ('delta', 'theta', 'beta')
 
 for subj in subjects:
     # load labels
-    labels = mne.read_labels_from_annot(subj, 'aparc',
+    regexp = f"(?!{'|'.join(skip_labels)})"
+    labels = mne.read_labels_from_annot(subj, 'aparc', regexp=regexp,
                                         subjects_dir=subjects_dir)
     label_names = [label.name for label in labels]
     # load inverse
@@ -61,11 +64,11 @@ for subj in subjects:
     for freq_band in freq_bands:
         epo_fname = f'{subj}-{freq_band}-band-filtered-epo.fif'
         epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
+        # get envelope (faster if we do it before inverse)
+        epochs.apply_hilbert()
         # loop over conditions
         for condition in epochs.event_id:
             this_epochs = epochs[condition]
-            # get envelope (faster if we do it before inverse)
-            epochs.apply_hilbert()
             # apply inverse
             stcs = apply_inverse_epochs(this_epochs, inv_operator, lambda2,
                                         method, pick_ori=pick_ori,
