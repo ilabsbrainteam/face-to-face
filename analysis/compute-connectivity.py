@@ -16,8 +16,7 @@ from f2f_helpers import load_paths, load_subjects, load_params
 
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
-# entorhinal → "no vertices in label" error
-skip_labels = tuple(f'entorhinal-{hemi}' for hemi in ('lh', 'rh'))
+freq_bands = ('delta', 'theta', 'beta')
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -38,14 +37,16 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-freq_bands = ('delta', 'theta', 'beta')
+# load labels
+labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub',
+                                    subjects_dir=None)
 
 for subj in subjects:
-    # load labels
-    regexp = f"(?!{'|'.join(skip_labels)})"
-    labels = mne.read_labels_from_annot(subj, 'aparc', regexp=regexp,
-                                        subjects_dir=subjects_dir)
-    label_names = [label.name for label in labels]
+    # morph labels
+    this_labels = mne.morph_labels(
+        labels, subject_to=subj, subject_from='fsaverage',
+        subjects_dir=subjects_dir)
+    label_names = [label.name for label in this_labels]
     # load inverse
     inv_fnames = dict(
         erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -66,9 +67,10 @@ for subj in subjects:
         epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
         # get envelope (faster if we do it before inverse)
         epochs.apply_hilbert()
-        # loop over conditions
-        for condition in epochs.event_id:
-            this_epochs = epochs[condition]
+        # loop over conditions; also do grand average
+        for condition in tuple(epochs.event_id) + ('allconds',):
+            this_epochs = (epochs.copy() if condition == 'allconds' else
+                           epochs[condition])
             # apply inverse
             stcs = apply_inverse_epochs(this_epochs, inv_operator, lambda2,
                                         method, pick_ori=pick_ori,
@@ -76,7 +78,8 @@ for subj in subjects:
             # get average signal in each label
             # (mean_flip reduces signal cancellation)
             label_timeseries = mne.extract_label_time_course(
-                stcs, labels, src, mode='mean_flip', return_generator=True)
+                stcs, this_labels, src, mode='mean_flip',
+                return_generator=True)
             # compute connectivity
             conn = envelope_correlation(label_timeseries,
                                         names=label_names).combine('mean')
