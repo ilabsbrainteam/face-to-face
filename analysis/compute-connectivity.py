@@ -8,6 +8,7 @@ license: MIT
 """
 
 import os
+import numpy as np
 import mne
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne_connectivity import envelope_correlation
@@ -67,21 +68,20 @@ for subj in subjects:
         epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
         # get envelope (faster if we do it before inverse)
         epochs.apply_hilbert()
-        # loop over conditions; also do grand average
+        # apply inverse
+        stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
+                                    pick_ori=pick_ori, return_generator=True)
+        # get average signal in each label
+        # (mean_flip reduces signal cancellation)
+        label_timeseries = mne.extract_label_time_course(
+            stcs, this_labels, src, mode='mean_flip', return_generator=False)
+        label_timeseries = np.array(label_timeseries)
+        # compute connectivity across all trials & separately in each condition
         for condition in tuple(epochs.event_id) + ('allconds',):
-            this_epochs = (epochs.copy() if condition == 'allconds' else
-                           epochs[condition])
-            # apply inverse
-            stcs = apply_inverse_epochs(this_epochs, inv_operator, lambda2,
-                                        method, pick_ori=pick_ori,
-                                        return_generator=True)
-            # get average signal in each label
-            # (mean_flip reduces signal cancellation)
-            label_timeseries = mne.extract_label_time_course(
-                stcs, this_labels, src, mode='mean_flip',
-                return_generator=True)
-            # compute connectivity
-            conn = envelope_correlation(label_timeseries,
+            _ids = (epochs.event_id.values() if condition == 'allconds' else
+                    (epochs.event_id[condition],))
+            indices = np.in1d(epochs.events[:, -1], _ids)
+            conn = envelope_correlation(label_timeseries[indices],
                                         names=label_names).combine('mean')
             # save
             conn_fname = (f'{subj}-{condition}-{freq_band}-band'
