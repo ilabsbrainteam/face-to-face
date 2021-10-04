@@ -83,7 +83,8 @@ for subj in subjects:
         label_timeseries = np.array(label_timeseries)
         # compute connectivity across all trials & separately in each condition
         for condition in tuple(epochs.event_id) + ('allconds',):
-            _ids = (epochs.event_id.values() if condition == 'allconds' else
+            _ids = (tuple(epochs.event_id.values())
+                    if condition == 'allconds' else
                     (epochs.event_id[condition],))
             indices = np.in1d(epochs.events[:, -1], _ids)
             conn = envelope_correlation(label_timeseries[indices],
