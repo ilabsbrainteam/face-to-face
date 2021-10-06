@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 import mne
 import mne_connectivity
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params, get_roi_labels
+from f2f_helpers import (load_paths, load_subjects, load_params,
+                         get_roi_labels, get_skip_regexp)
 
 
 def get_slug(subj, band, cond):
@@ -26,7 +27,8 @@ def get_slug(subj, band, cond):
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
 threshold_prop = 0.25  # proportion of strongest edges to keep in the graph
-skip_labels = ('entorhinal-lh',)  # entorhinal → "no vertices in label" error
+freq_bands = ('delta', 'theta', 'beta')
+conditions = ('attend', 'ignore', 'attend-ignore')
 force_rerender = True  # set False for tweaking overview plotting
 
 # config paths
@@ -48,9 +50,6 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-freq_bands = ('delta', 'theta', 'beta')
-conditions = ('attend', 'ignore', 'attend-ignore')
-
 # handle colormap lims
 cmaps = dict(positive=get_cmap('viridis').copy(),
              symmetric=get_cmap('RdBu_r').copy())
@@ -63,18 +62,22 @@ for key, cmap in cmaps.items():
     else:
         print('WARNING: colormap limits will not be consistent across plots')
 
+# load labels
+regexp = get_skip_regexp()
+labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub', regexp=regexp,
+                                    subjects_dir=None)
 
 if force_rerender:
     for subj in subjects:
-        # load labels
-        regexp = f"(?!{'|'.join(skip_labels)})"
-        labels = mne.read_labels_from_annot(subj, 'aparc', regexp=regexp,
-                                            subjects_dir=subjects_dir)
-        label_names = [label.name for label in labels]
-        # load ROIs that we care about
-        roi_labels = get_roi_labels(subj, param_dir)
-        roi_names = [label.name for label in roi_labels]
-        roi_indices = np.nonzero(np.in1d(label_names, roi_names))[0]
+        # morph labels
+        this_labels = mne.morph_labels(
+            labels, subject_to=subj, subject_from='fsaverage',
+            subjects_dir=subjects_dir)
+        label_names = [label.name for label in this_labels]
+        # XXX # load ROIs that we care about
+        # XXX roi_labels = get_roi_labels(subj, param_dir)
+        # XXX roi_names = [label.name for label in roi_labels]
+        # XXX roi_indices = np.nonzero(np.in1d(label_names, roi_names))[0]
         # load source space (from inverse)
         inv_fnames = dict(
             erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -95,7 +98,8 @@ if force_rerender:
                     conn = mne_connectivity.read_connectivity(conn_fpath)
                     full_degree = mne_connectivity.degree(conn, threshold_prop)
                     # restrict to ROIs of interest
-                    degrees[condition] = full_degree[roi_indices]
+                    # XXX degrees[condition] = full_degree[roi_indices]
+                    degrees[condition] = full_degree
                     # determine optimal colormap lims
                     clims['positive'] = np.array([
                         min(clims['positive'][0], degrees[condition].min()),
@@ -112,7 +116,8 @@ if force_rerender:
                     ])
                     degrees[condition] = degree
                 # convert to STC
-                stc = mne.labels_to_stc(roi_labels, degrees[condition])
+                # XXX stc = mne.labels_to_stc(roi_labels, degrees[condition])
+                stc = mne.labels_to_stc(this_labels, degrees[condition])
                 stc = stc.in_label(
                     mne.Label(source_space[0]['vertno'], hemi='lh') +
                     mne.Label(source_space[1]['vertno'], hemi='rh'))

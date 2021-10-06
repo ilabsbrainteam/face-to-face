@@ -12,7 +12,7 @@ import numpy as np
 import mne
 import mne_connectivity
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params
+from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 
 
 def get_slug(subj, band, cond):
@@ -47,7 +47,8 @@ mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
 # load labels
-labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub',
+regexp = get_skip_regexp()
+labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub', regexp=regexp,
                                     subjects_dir=None)
 
 for threshold_prop in threshold_props:

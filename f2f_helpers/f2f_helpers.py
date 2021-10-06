@@ -35,6 +35,13 @@ def load_params(fname):
     return params
 
 
+def get_skip_regexp(skip_regions=('unknown',)):
+    """Convert an iterable of region names to a label regexp excluding them."""
+    skip_labels = tuple(f'{region}-{hemi}'
+                        for region in skip_regions for hemi in ('lh', 'rh'))
+    return f"(?!{'|'.join(skip_labels)})"
+
+
 def get_roi_labels(subject, param_dir, parc='aparc', merge=None):
     """Load ROI labels for the given subject."""
     _, subjects_dir, _ = load_paths()

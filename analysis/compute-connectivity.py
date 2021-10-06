@@ -13,15 +13,11 @@ import mne
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne_connectivity import envelope_correlation
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params
+from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
 freq_bands = ('delta', 'theta', 'beta')
-skip_regions = ('unknown',)
-skip_labels = tuple(f'{region}-{hemi}'
-                    for region in skip_regions
-                    for hemi in ('lh', 'rh'))
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -43,7 +39,7 @@ mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
 # load labels
-regexp = f"(?!{'|'.join(skip_labels)})"
+regexp = get_skip_regexp()
 labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub', regexp=regexp,
                                     subjects_dir=None)
 
