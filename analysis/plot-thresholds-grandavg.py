@@ -88,7 +88,7 @@ for threshold_prop in threshold_props:
 
     # plot grand average STC
     brain = grandavg_stc.plot(
-        clim=dict(kind='percent', lims=[55, 75, 95]),
+        clim=dict(kind='percent', lims=[75, 85, 95]),
         colormap='plasma',
         subjects_dir=subjects_dir,
         views=['lateral', 'medial', 'dorsal'], hemi='split',
