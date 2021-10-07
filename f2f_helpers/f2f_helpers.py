@@ -35,7 +35,7 @@ def load_params(fname):
     return params
 
 
-def get_skip_regexp(skip_regions=('unknown',)):
+def get_skip_regexp(skip_regions=('unknown', r'\?\?\?')):
     """Convert an iterable of region names to a label regexp excluding them."""
     skip_labels = tuple(f'{region}-{hemi}'
                         for region in skip_regions for hemi in ('lh', 'rh'))

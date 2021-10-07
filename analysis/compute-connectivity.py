@@ -18,6 +18,7 @@ from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
 freq_bands = ('delta', 'theta', 'beta')
+parcellations = ('aparc', 'aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -38,17 +39,23 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-# load labels
-regexp = get_skip_regexp()
-labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub', regexp=regexp,
-                                    subjects_dir=None)
+# loop over parcellations
+parcellation_dict = dict()
+for parcellation in parcellations:
+    parcellation_dict[parcellation] = dict()
+    # load labels
+    regexp = get_skip_regexp()
+    labels = mne.read_labels_from_annot(
+        'fsaverage', parcellation, regexp=regexp, subjects_dir=subjects_dir)
+    parcellation_dict[parcellation]['fsaverage'] = labels
+    # morph labels
+    for subj in subjects:
+        this_labels = mne.morph_labels(
+            labels, subject_to=subj, subject_from='fsaverage',
+            subjects_dir=subjects_dir)
+        parcellation_dict[parcellation][subj] = this_labels
 
 for subj in subjects:
-    # morph labels
-    this_labels = mne.morph_labels(
-        labels, subject_to=subj, subject_from='fsaverage',
-        subjects_dir=subjects_dir)
-    label_names = [label.name for label in this_labels]
     # load inverse
     inv_fnames = dict(
         erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -73,20 +80,24 @@ for subj in subjects:
         stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
                                     pick_ori=pick_ori, return_generator=True)
         # get average signal in each label
-        # (mean_flip reduces signal cancellation)
-        label_timeseries = mne.extract_label_time_course(
-            stcs, this_labels, src, mode='mean_flip', return_generator=False)
-        label_timeseries = np.array(label_timeseries)
-        # compute connectivity across all trials & separately in each condition
-        for condition in tuple(epochs.event_id) + ('allconds',):
-            _ids = (tuple(epochs.event_id.values())
-                    if condition == 'allconds' else
-                    (epochs.event_id[condition],))
-            indices = np.in1d(epochs.events[:, -1], _ids)
-            conn = envelope_correlation(label_timeseries[indices],
-                                        names=label_names).combine('mean')
-            # save
-            conn_fname = (f'{subj}-{condition}-{freq_band}-band'
-                          '-envelope-correlation.nc')
-            conn_fpath = os.path.join(conn_dir, conn_fname)
-            conn.save(conn_fpath)
+        for parcellation in parcellation_dict:
+            this_labels = parcellation_dict[parcellation][subj]
+            label_names = [label.name for label in this_labels]
+            # below, mode=mean doesn't risk signal cancellation because we're
+            # using only the magnitude of a free orientation constraint inverse
+            label_timeseries = mne.extract_label_time_course(
+                stcs, this_labels, src, mode='mean', return_generator=False)
+            label_timeseries = np.array(label_timeseries)
+            # compute connectivity across all trials & in each condition
+            for condition in tuple(epochs.event_id) + ('allconds',):
+                _ids = (tuple(epochs.event_id.values())
+                        if condition == 'allconds' else
+                        (epochs.event_id[condition],))
+                indices = np.in1d(epochs.events[:, -1], _ids)
+                conn = envelope_correlation(label_timeseries[indices],
+                                            names=label_names).combine('mean')
+                # save
+                conn_fname = (f'{parcellation}-{subj}-{condition}-'
+                              f'{freq_band}-band-envelope-correlation.nc')
+                conn_fpath = os.path.join(conn_dir, conn_fname)
+                conn.save(conn_fpath)
