@@ -39,21 +39,7 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-# loop over parcellations
-parcellation_dict = dict()
-for parcellation in parcellations:
-    parcellation_dict[parcellation] = dict()
-    # load labels
-    regexp = get_skip_regexp()
-    labels = mne.read_labels_from_annot(
-        'fsaverage', parcellation, regexp=regexp, subjects_dir=subjects_dir)
-    parcellation_dict[parcellation]['fsaverage'] = labels
-    # morph labels
-    for subj in subjects:
-        this_labels = mne.morph_labels(
-            labels, subject_to=subj, subject_from='fsaverage',
-            subjects_dir=subjects_dir)
-        parcellation_dict[parcellation][subj] = this_labels
+regexp = get_skip_regexp()  # label regexp ignores "???" & "unknown" by default
 
 for subj in subjects:
     # load inverse
@@ -80,13 +66,15 @@ for subj in subjects:
         stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
                                     pick_ori=pick_ori, return_generator=False)
         # get average signal in each label
-        for parcellation in parcellation_dict:
-            this_labels = parcellation_dict[parcellation][subj]
-            label_names = [label.name for label in this_labels]
+        for parcellation in parcellations:
+            # load labels
+            labels = mne.read_labels_from_annot(
+                subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
+            label_names = [label.name for label in labels]
             # below, mode=mean doesn't risk signal cancellation because we're
             # using only the magnitude of a free orientation constraint inverse
             label_timeseries = mne.extract_label_time_course(
-                stcs, this_labels, src, mode='mean', return_generator=False)
+                stcs, labels, src, mode='mean', return_generator=False)
             label_timeseries = np.array(label_timeseries)
             # compute connectivity across all trials & in each condition
             for condition in tuple(epochs.event_id) + ('allconds',):

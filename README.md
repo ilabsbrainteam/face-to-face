@@ -6,4 +6,5 @@
    surrogate MRI scaled to each subject's headshape points / cardinal
    landmarks. Also generates the `-trans.fif` file
 3. run `preprocessing/run_mnefun.py`
-4. run `analysis/whatever.py`
+4. run `preprocessing/morph_labels.py`
+5. run `analysis/whatever.py`
