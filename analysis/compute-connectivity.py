@@ -78,7 +78,7 @@ for subj in subjects:
         epochs.apply_hilbert()
         # apply inverse
         stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
-                                    pick_ori=pick_ori, return_generator=True)
+                                    pick_ori=pick_ori, return_generator=False)
         # get average signal in each label
         for parcellation in parcellation_dict:
             this_labels = parcellation_dict[parcellation][subj]
