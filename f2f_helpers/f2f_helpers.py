@@ -35,11 +35,15 @@ def load_params(fname):
     return params
 
 
-def get_skip_regexp(skip_regions=('unknown', r'\?\?\?')):
+def get_skip_regexp(regions=(), skip_unknown=True):
     """Convert an iterable of region names to a label regexp excluding them."""
+    unknown = ('unknown', r'\?\?\?')
+    if skip_unknown:
+        regions = regions + unknown
     skip_labels = tuple(f'{region}-{hemi}'
-                        for region in skip_regions for hemi in ('lh', 'rh'))
-    return f"(?!{'|'.join(skip_labels)})"
+                        for region in regions for hemi in ('lh', 'rh'))
+    if len(skip_labels):
+        return f"(?!{'|'.join(skip_labels)})"
 
 
 def get_roi_labels(subject, param_dir, parc='aparc', merge=None):

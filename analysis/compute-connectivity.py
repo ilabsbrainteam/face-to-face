@@ -18,7 +18,6 @@ from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
 freq_bands = ('delta', 'theta', 'beta')
-parcellations = ('aparc', 'aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -39,7 +38,7 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-regexp = get_skip_regexp()  # label regexp ignores "???" & "unknown" by default
+labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 
 for subj in subjects:
     # load inverse
@@ -66,8 +65,9 @@ for subj in subjects:
         stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
                                     pick_ori=pick_ori, return_generator=False)
         # get average signal in each label
-        for parcellation in parcellations:
+        for parcellation, skips in labels_to_skip.items():
             # load labels
+            regexp = get_skip_regexp(skips)
             labels = mne.read_labels_from_annot(
                 subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
             label_names = [label.name for label in labels]

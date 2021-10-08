@@ -47,12 +47,10 @@ mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 
-# label regexp ignores "???" & "unknown" by default
-regexp = get_skip_regexp()
-parcellations = ('aparc', 'aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
+labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 
-
-for parcellation in parcellations:
+for parcellation, skips in labels_to_skip.items():
+    regexp = get_skip_regexp(skips)
     for threshold_prop in threshold_props:
         grandavg_stc = None
         for subj in subjects:
@@ -98,6 +96,7 @@ for parcellation in parcellations:
             size=(900, 1200), background='w', title=slug)
         # save
         slug = get_slug('grandavg', freq_band, condition)
-        img_fname = f'{slug}-degree-thresh_{threshold_prop:.02f}.png'
-        brain.save_image(os.path.join(plot_dir, parcellation, img_fname))
+        img_fname = (f'{parcellation}-{slug}-degree-thresh_'
+                     f'{threshold_prop:.02f}.png')
+        brain.save_image(os.path.join(plot_dir, img_fname))
         brain.close()
