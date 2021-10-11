@@ -72,8 +72,10 @@ for subj in subjects:
             labels = mne.read_labels_from_annot(
                 subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
             label_names = [label.name for label in labels]
-            # below, mode=mean doesn't risk signal cancellation because we're
-            # using only the magnitude of a free orientation constraint inverse
+            # mode=mean doesn't risk signal cancellation if using only the
+            # magnitude of a (usu. free orientation constraint) inverse
+            mode = ('mean' if inv_params['estimate_type'] == 'magnitude' else
+                    'auto')
             label_timeseries = mne.extract_label_time_course(
                 stcs, labels, src, mode='mean', return_generator=False)
             label_timeseries = np.array(label_timeseries)
