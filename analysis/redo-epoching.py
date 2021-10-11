@@ -18,7 +18,7 @@ from f2f_helpers import load_paths, load_subjects, load_params
 new_sfreq = 1000
 
 # config paths
-data_root, subjects_dir, results_dir = load_paths()
+data_root, subjects_dir, results_dir = load_paths(include_inv_params=False)
 epo_dir = os.path.join(results_dir, 'epochs')
 for _dir in (epo_dir,):
     os.makedirs(_dir, exist_ok=True)

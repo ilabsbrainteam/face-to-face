@@ -21,8 +21,9 @@ freq_bands = ('delta', 'theta', 'beta')
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
+*_, results_root_dir = load_paths(include_inv_params=False)
 param_dir = os.path.join('..', 'params')
-epo_dir = os.path.join(results_dir, 'epochs')
+epo_dir = os.path.join(results_root_dir, 'epochs')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
 for _dir in (conn_dir,):
     os.makedirs(_dir, exist_ok=True)
