@@ -9,10 +9,14 @@ paramdir = os.path.join('..', 'params')
 yamload = partial(yaml.load, Loader=yaml.FullLoader)
 
 
-def load_paths():
+def load_paths(include_inv_params=True):
     """Load necessary filesystem paths."""
     with open(os.path.join(paramdir, 'paths.yaml'), 'r') as f:
         paths = yamload(f)
+    if include_inv_params:
+        params = load_params(os.path.join(paramdir, 'inverse_params.yaml'))
+        _dir = f"{params['orientation_constraint']}-{params['estimate_type']}"
+        paths['results_dir'] = os.path.join(paths['results_dir'], _dir)
     return paths['data_root'], paths['subjects_dir'], paths['results_dir']
 
 
