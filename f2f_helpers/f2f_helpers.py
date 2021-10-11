@@ -9,10 +9,16 @@ paramdir = os.path.join('..', 'params')
 yamload = partial(yaml.load, Loader=yaml.FullLoader)
 
 
+def load_params(fname):
+    """Load parameters from YAML file."""
+    with open(fname, 'r') as f:
+        params = yamload(f)
+    return params
+
+
 def load_paths(include_inv_params=True):
     """Load necessary filesystem paths."""
-    with open(os.path.join(paramdir, 'paths.yaml'), 'r') as f:
-        paths = yamload(f)
+    paths = load_params(os.path.join(paramdir, 'paths.yaml'))
     if include_inv_params:
         params = load_params(os.path.join(paramdir, 'inverse_params.yaml'))
         _dir = f"{params['orientation_constraint']}-{params['estimate_type']}"
@@ -22,21 +28,12 @@ def load_paths(include_inv_params=True):
 
 def load_subjects(skip=True):
     """Load subject IDs."""
-    with open(os.path.join(paramdir, 'subjects.yaml'), 'r') as f:
-        subjects = yamload(f)
+    subjects = load_params(os.path.join(paramdir, 'subjects.yaml'))
     # skip bad subjects
     if skip:
-        with open(os.path.join(paramdir, 'skip_subjects.yaml'), 'r') as f:
-            skips = yamload(f)
+        skips = load_params(os.path.join(paramdir, 'skip_subjects.yaml'))
         subjects = sorted(set(subjects) - set(skips))
     return subjects
-
-
-def load_params(fname):
-    """Load parameters from YAML file."""
-    with open(fname, 'r') as f:
-        params = yamload(f)
-    return params
 
 
 def get_skip_regexp(regions=(), skip_unknown=True):
