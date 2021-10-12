@@ -9,12 +9,11 @@ license: MIT
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import mne
 import mne_connectivity
-from f2f_helpers import load_paths, load_subjects, get_skip_regexp
+from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 
 
 def get_slug(subj, band, cond):
@@ -25,6 +24,7 @@ def get_slug(subj, band, cond):
 cov_type = 'erm'  # 'erm' or 'baseline'
 freq_band = 'theta'
 condition = 'allconds'
+parcellation = 'aparc'
 threshold_prop = 0.15
 corr_thresh = 0.8
 
@@ -45,16 +45,16 @@ extremes = sns.diverging_palette(s=100, l=33, n=2, **cmap_kwargs)
 cmap.set_extremes(under=extremes[0], over=extremes[1])
 
 # load labels
-regexp = get_skip_regexp()
-labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub', regexp=regexp,
-                                    subjects_dir=None)
-label_names = [label.name for label in labels]
+labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
+regexp = get_skip_regexp(labels_to_skip[parcellation])
+labels = mne.read_labels_from_annot('fsaverage', parc=parcellation,
+                                    regexp=regexp, subjects_dir=None)
 
-degree = np.zeros((0, 448), dtype=int)
+degree = np.zeros((0, len(labels)), dtype=int)
 for subj in subjects:
     # load connectivity
     slug = get_slug(subj, freq_band, condition)
-    conn_fname = (f'{slug}-envelope-correlation.nc')
+    conn_fname = (f'{parcellation}-{slug}-envelope-correlation.nc')
     conn_fpath = os.path.join(conn_dir, conn_fname)
     conn = mne_connectivity.read_connectivity(conn_fpath)
     this_degree = mne_connectivity.degree(conn, threshold_prop)
@@ -63,26 +63,22 @@ for subj in subjects:
 corr = np.corrcoef(degree, rowvar=False)
 corr_df = pd.DataFrame(corr, index=conn.names, columns=conn.names)
 heatmap_kwargs = dict(cmap=cmap, vmin=-corr_thresh, vmax=corr_thresh)
-figsize = (60, 60)
+inches = np.round(len(labels), -1) // 5
+figsize = (inches, inches)
 # make separate dataframes for each hemisphere (we'll never merge across hemis)
 for hemi in ('lh', 'rh'):
-    prefix = f'label-degree-correlations-{freq_band}-band'
+    prefix = f'{parcellation}-label-degree-correlations-{freq_band}-band'
     regex = f'.*-{hemi}'
     df = corr_df.filter(regex=regex, axis=0).filter(regex=regex, axis=1)
     # clustered heatmap
     cg = sns.clustermap(df, figsize=figsize, **heatmap_kwargs)
     fname = f'{prefix}-clustered-{hemi}.png'
     cg.fig.savefig(os.path.join(plot_dir, fname))
-    # alphabetically-ordered heatmap
-    fig = plt.figure(figsize=figsize)
-    ax, cbar_ax = fig.subplots(
-        1, 2, gridspec_kw=dict(width_ratios=(24, 1), wspace=0.1))
-    ax = sns.heatmap(df, ax=ax, cbar_ax=cbar_ax, square=True, **heatmap_kwargs)
-    fname = f'{prefix}-heatmap-{hemi}.png'
-    fig.savefig(os.path.join(plot_dir, fname))
-
-# print a list of correlated labels
-lower_tri = np.tril(df.values, k=-1)
-mask = np.abs(lower_tri) > corr_thresh
-ixs = np.nonzero(mask)
-pairs = np.array(list(zip(df.index.values[ixs[0]], df.columns.values[ixs[1]])))
+    # # alphabetically-ordered heatmap
+    # fig = plt.figure(figsize=figsize)
+    # ax, cbar_ax = fig.subplots(
+    #     1, 2, gridspec_kw=dict(width_ratios=(24, 1), wspace=0.1))
+    # ax = sns.heatmap(df, ax=ax, cbar_ax=cbar_ax, square=True,
+    #                  **heatmap_kwargs)
+    # fname = f'{prefix}-heatmap-{hemi}.png'
+    # fig.savefig(os.path.join(plot_dir, fname))
