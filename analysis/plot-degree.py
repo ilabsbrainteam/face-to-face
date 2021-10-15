@@ -16,8 +16,7 @@ import matplotlib.pyplot as plt
 import mne
 import mne_connectivity
 import mnefun
-from f2f_helpers import (load_paths, load_subjects, load_params,
-                         get_roi_labels, get_skip_regexp)
+from f2f_helpers import load_paths, load_subjects, load_params
 
 
 def get_slug(subj, band, cond):
@@ -26,9 +25,10 @@ def get_slug(subj, band, cond):
 
 # flags
 cov_type = 'erm'  # 'erm' or 'baseline'
-threshold_prop = 0.25  # proportion of strongest edges to keep in the graph
 freq_bands = ('delta', 'theta', 'beta')
 conditions = ('attend', 'ignore', 'attend-ignore')
+parcellation = 'aparc'
+threshold_prop = 0.15
 force_rerender = True  # set False for tweaking overview plotting
 
 # config paths
@@ -41,6 +41,7 @@ for _dir in (plot_dir,):
 
 # load other config values
 subjects = load_subjects()
+surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 inv_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
 orientation_constraint = (
     '' if inv_params['orientation_constraint'] == 'loose' else
@@ -63,21 +64,16 @@ for key, cmap in cmaps.items():
         print('WARNING: colormap limits will not be consistent across plots')
 
 # load labels
-regexp = get_skip_regexp()
-labels = mne.read_labels_from_annot('fsaverage', 'aparc_sub', regexp=regexp,
-                                    subjects_dir=None)
-
+roi_names = load_params(os.path.join(param_dir, 'rois.yaml'))
+labels_to_skip = load_params(
+    os.path.join(param_dir, 'skip_labels.yaml'))[parcellation]
+roi_names = sorted(set(roi_names) - set(labels_to_skip))
+regexp = '|'.join(roi_names)
+labels = mne.read_labels_from_annot(surrogate, parc=parcellation,
+                                    regexp=regexp, subjects_dir=None)
+label_names = [label.name for label in labels]
 if force_rerender:
     for subj in subjects:
-        # morph labels
-        this_labels = mne.morph_labels(
-            labels, subject_to=subj, subject_from='fsaverage',
-            subjects_dir=subjects_dir)
-        label_names = [label.name for label in this_labels]
-        # XXX # load ROIs that we care about
-        # XXX roi_labels = get_roi_labels(subj, param_dir)
-        # XXX roi_names = [label.name for label in roi_labels]
-        # XXX roi_indices = np.nonzero(np.in1d(label_names, roi_names))[0]
         # load source space (from inverse)
         inv_fnames = dict(
             erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -93,13 +89,14 @@ if force_rerender:
             for condition in conditions:
                 if condition in ('attend', 'ignore'):
                     slug = get_slug(subj, freq_band, condition)
-                    conn_fname = (f'{slug}-envelope-correlation.nc')
+                    conn_fname = (
+                        f'{parcellation}-{slug}-envelope-correlation.nc')
                     conn_fpath = os.path.join(conn_dir, conn_fname)
                     conn = mne_connectivity.read_connectivity(conn_fpath)
                     full_degree = mne_connectivity.degree(conn, threshold_prop)
                     # restrict to ROIs of interest
-                    # XXX degrees[condition] = full_degree[roi_indices]
-                    degrees[condition] = full_degree
+                    roi_indices = np.in1d(conn.names, label_names)
+                    degrees[condition] = full_degree[roi_indices]
                     # determine optimal colormap lims
                     clims['positive'] = np.array([
                         min(clims['positive'][0], degrees[condition].min()),
@@ -117,7 +114,7 @@ if force_rerender:
                     degrees[condition] = degree
                 # convert to STC
                 # XXX stc = mne.labels_to_stc(roi_labels, degrees[condition])
-                stc = mne.labels_to_stc(this_labels, degrees[condition])
+                stc = mne.labels_to_stc(labels, degrees[condition])
                 stc = stc.in_label(
                     mne.Label(source_space[0]['vertno'], hemi='lh') +
                     mne.Label(source_space[1]['vertno'], hemi='rh'))
