@@ -37,6 +37,7 @@ for _dir in (plot_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 subjects = load_subjects()
+surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 
 # colormap
 cmap_kwargs = dict(h_neg=220, h_pos=10, sep=20)
@@ -47,7 +48,7 @@ cmap.set_extremes(under=extremes[0], over=extremes[1])
 # load labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 regexp = get_skip_regexp(labels_to_skip[parcellation])
-labels = mne.read_labels_from_annot('fsaverage', parc=parcellation,
+labels = mne.read_labels_from_annot(surrogate, parc=parcellation,
                                     regexp=regexp, subjects_dir=None)
 
 degree = np.zeros((0, len(labels)), dtype=int)
