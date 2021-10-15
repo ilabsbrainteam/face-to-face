@@ -55,7 +55,7 @@ degree = np.zeros((0, len(labels)), dtype=int)
 for subj in subjects:
     # load connectivity
     slug = get_slug(subj, freq_band, condition)
-    conn_fname = (f'{parcellation}-{slug}-envelope-correlation.nc')
+    conn_fname = f'{parcellation}-{slug}-envelope-correlation.nc'
     conn_fpath = os.path.join(conn_dir, conn_fname)
     conn = mne_connectivity.read_connectivity(conn_fpath)
     this_degree = mne_connectivity.degree(conn, threshold_prop)
