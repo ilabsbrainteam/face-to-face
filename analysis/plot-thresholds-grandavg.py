@@ -38,6 +38,7 @@ for _dir in (plot_dir,):
 
 # load other config values
 subjects = load_subjects()
+surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 inv_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
 orientation_constraint = (
     '' if inv_params['orientation_constraint'] == 'loose' else
@@ -53,11 +54,11 @@ for parcellation, skips in labels_to_skip.items():
     regexp = get_skip_regexp(skips)
     for threshold_prop in threshold_props:
         grandavg_stc = None
+        # load labels
+        labels = mne.read_labels_from_annot(
+            surrogate, parcellation, regexp=regexp, subjects_dir=subjects_dir)
+        label_names = [label.name for label in labels]
         for subj in subjects:
-            # load labels
-            labels = mne.read_labels_from_annot(
-                subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
-            label_names = [label.name for label in labels]
             # load source space (from inverse)
             inv_fnames = dict(
                 erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
