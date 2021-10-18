@@ -109,7 +109,6 @@ if force_rerender:
                     ])
                     degrees[condition] = degree
                 # convert to STC
-                # XXX stc = mne.labels_to_stc(roi_labels, degrees[condition])
                 stc = mne.labels_to_stc(labels, degrees[condition])
                 stc = stc.in_label(
                     mne.Label(source_space[0]['vertno'], hemi='lh') +
