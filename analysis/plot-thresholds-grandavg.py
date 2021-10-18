@@ -13,12 +13,8 @@ import mne
 from mne.minimum_norm import read_inverse_operator
 import mne_connectivity
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
-
-
-def get_slug(subj, band, cond):
-    return f'{subj}-{condition}-{freq_band}-band'
-
+from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
+                         get_skip_regexp)
 
 # flags
 freq_band = 'beta'
@@ -69,8 +65,8 @@ for parcellation, skips in labels_to_skip.items():
             inv_fpath = os.path.join(data_root, subj, 'inverse', inv_fname)
             source_space = read_inverse_operator(inv_fpath)['src']
             # load connectivity
-            slug = get_slug(subj, freq_band, condition)
-            conn_fname = (f'{parcellation}-{slug}-envelope-correlation.nc')
+            slug = get_slug(subj, freq_band, condition, parcellation)
+            conn_fname = (f'{slug}-envelope-correlation.nc')
             conn_fpath = os.path.join(conn_dir, conn_fname)
             conn = mne_connectivity.read_connectivity(conn_fpath)
             full_degree = mne_connectivity.degree(conn, threshold_prop)
@@ -96,8 +92,7 @@ for parcellation, skips in labels_to_skip.items():
             smoothing_steps='nearest', time_label=f'{freq_band} band',
             size=(900, 1200), background='w', title=slug)
         # save
-        slug = get_slug('grandavg', freq_band, condition)
-        img_fname = (f'{parcellation}-{slug}-degree-thresh_'
-                     f'{threshold_prop:.02f}.png')
+        slug = get_slug('grandavg', freq_band, condition, parcellation)
+        img_fname = (f'{slug}-degree-thresh_{threshold_prop:.02f}.png')
         brain.save_image(os.path.join(plot_dir, img_fname))
         brain.close()

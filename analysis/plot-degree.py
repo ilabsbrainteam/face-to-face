@@ -16,12 +16,7 @@ import matplotlib.pyplot as plt
 import mne
 import mne_connectivity
 import mnefun
-from f2f_helpers import load_paths, load_subjects, load_params
-
-
-def get_slug(subj, band, cond):
-    return f'{subj}-{condition}-{freq_band}-band'
-
+from f2f_helpers import load_paths, load_subjects, load_params, get_slug
 
 # flags
 freq_bands = ('delta', 'theta', 'beta')
@@ -89,9 +84,9 @@ if force_rerender:
             degrees = dict()
             for condition in conditions:
                 if condition in ('attend', 'ignore'):
-                    slug = get_slug(subj, freq_band, condition)
+                    slug = get_slug(subj, freq_band, condition, parcellation)
                     conn_fname = (
-                        f'{parcellation}-{slug}-envelope-correlation.nc')
+                        f'{slug}-envelope-correlation.nc')
                     conn_fpath = os.path.join(conn_dir, conn_fname)
                     conn = mne_connectivity.read_connectivity(conn_fpath)
                     full_degree = mne_connectivity.degree(conn, threshold_prop)

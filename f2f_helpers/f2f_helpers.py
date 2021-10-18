@@ -47,6 +47,12 @@ def get_skip_regexp(regions=(), skip_unknown=True):
         return f"(?!{'|'.join(skip_labels)})"
 
 
+def get_slug(subject, freq_band, condition, parcellation=None):
+    """Assemble a filename slug from experiment parameters."""
+    parcellation = '' if parcellation is None else f'{parcellation}-'
+    return f'{parcellation}{subject}-{condition}-{freq_band}-band'
+
+
 def get_roi_labels(subject, param_dir, parc='aparc', merge=None):
     """Load ROI labels for the given subject."""
     _, subjects_dir, _ = load_paths()

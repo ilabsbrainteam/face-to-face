@@ -13,12 +13,8 @@ import pandas as pd
 import seaborn as sns
 import mne
 import mne_connectivity
-from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
-
-
-def get_slug(subj, band, cond):
-    return f'{subj}-{condition}-{freq_band}-band'
-
+from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
+                         get_skip_regexp)
 
 # flags
 freq_band = 'theta'
@@ -56,8 +52,8 @@ labels = mne.read_labels_from_annot(surrogate, parc=parcellation,
 degree = np.zeros((0, len(labels)), dtype=int)
 for subj in subjects:
     # load connectivity
-    slug = get_slug(subj, freq_band, condition)
-    conn_fname = f'{parcellation}-{slug}-envelope-correlation.nc'
+    slug = get_slug(subj, freq_band, condition, parcellation)
+    conn_fname = f'{slug}-envelope-correlation.nc'
     conn_fpath = os.path.join(conn_dir, conn_fname)
     conn = mne_connectivity.read_connectivity(conn_fpath)
     this_degree = mne_connectivity.degree(conn, threshold_prop)
