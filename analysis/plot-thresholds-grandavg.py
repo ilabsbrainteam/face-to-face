@@ -21,7 +21,6 @@ def get_slug(subj, band, cond):
 
 
 # flags
-cov_type = 'erm'  # 'erm' or 'baseline'
 freq_band = 'beta'
 condition = 'allconds'
 
@@ -43,6 +42,7 @@ inv_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
 orientation_constraint = (
     '' if inv_params['orientation_constraint'] == 'loose' else
     f"-{inv_params['orientation_constraint']}")
+cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)

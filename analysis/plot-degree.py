@@ -24,7 +24,6 @@ def get_slug(subj, band, cond):
 
 
 # flags
-cov_type = 'erm'  # 'erm' or 'baseline'
 freq_bands = ('delta', 'theta', 'beta')
 conditions = ('attend', 'ignore', 'attend-ignore')
 parcellation = 'aparc'
@@ -46,6 +45,7 @@ inv_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
 orientation_constraint = (
     '' if inv_params['orientation_constraint'] == 'loose' else
     f"-{inv_params['orientation_constraint']}")
+cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
@@ -72,6 +72,7 @@ regexp = '|'.join(roi_names)
 labels = mne.read_labels_from_annot(surrogate, parc=parcellation,
                                     regexp=regexp, subjects_dir=None)
 label_names = [label.name for label in labels]
+
 if force_rerender:
     for subj in subjects:
         # load source space (from inverse)

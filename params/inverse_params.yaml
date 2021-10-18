@@ -1,3 +1,4 @@
 method: dSPM                   # dSPM, MNE, sLORETA, eLORETA
 orientation_constraint: loose  # free, loose, fixed
 estimate_type: normal          # vector, magnitude, normal
+cov_type: erm                  # erm, baseline

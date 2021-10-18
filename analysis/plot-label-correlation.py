@@ -21,7 +21,6 @@ def get_slug(subj, band, cond):
 
 
 # flags
-cov_type = 'erm'  # 'erm' or 'baseline'
 freq_band = 'theta'
 condition = 'allconds'
 parcellation = 'aparc'
@@ -38,6 +37,9 @@ for _dir in (plot_dir,):
 
 subjects = load_subjects()
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
+
+inv_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
+cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 
 # colormap
 cmap_kwargs = dict(h_neg=220, h_pos=10, sep=20)
