@@ -60,7 +60,7 @@ for subj in subjects:
     for freq_band in freq_bands:
         epo_fname = f'{subj}-{freq_band}-band-filtered-epo.fif'
         epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
-        # get envelope (faster if we do it before inverse)
+        # do hilbert in sensor space (faster)
         epochs.apply_hilbert()
         # apply inverse
         stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
