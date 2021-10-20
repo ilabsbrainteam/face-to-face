@@ -86,7 +86,8 @@ for subj in subjects:
                         (epochs.event_id[condition],))
                 indices = np.in1d(epochs.events[:, -1], _ids)
                 conn = envelope_correlation(label_timeseries[indices],
-                                            names=label_names).combine('mean')
+                                            names=label_names
+                                            ).combine('median')
                 # save
                 conn_fname = (f'{parcellation}-{subj}-{condition}-'
                               f'{freq_band}-band-envelope-correlation.nc')
