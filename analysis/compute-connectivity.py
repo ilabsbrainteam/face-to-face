@@ -77,7 +77,7 @@ for subj in subjects:
             mode = ('mean' if inv_params['estimate_type'] == 'magnitude' else
                     'auto')
             label_timeseries = mne.extract_label_time_course(
-                stcs, labels, src, mode='mean', return_generator=False)
+                stcs, labels, src, mode=mode, return_generator=False)
             label_timeseries = np.array(label_timeseries)
             # compute connectivity across all trials & in each condition
             for condition in tuple(epochs.event_id) + ('allconds',):
