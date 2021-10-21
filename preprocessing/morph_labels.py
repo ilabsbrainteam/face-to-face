@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Envelope correlation of face-to-face data, in several bands.
+Morph labels from fsaverage to our surrogate brain.
 
 authors: Daniel McCloy
 license: MIT
@@ -9,9 +9,9 @@ license: MIT
 
 import os
 import mne
-from f2f_helpers import load_paths, load_subjects, get_skip_regexp
+from f2f_helpers import load_paths, load_params
 
-# "aparc" already exists for all subjects
+# "aparc" already exists for surrogate
 parcellations = ('aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
 
 # config paths
@@ -19,19 +19,17 @@ data_root, subjects_dir, results_dir = load_paths()
 param_dir = os.path.join('..', 'params')
 
 # load other config values
-subjects = load_subjects()
+surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 
 # loop over parcellations
 for parcellation in parcellations:
-    # load labels
-    regexp = get_skip_regexp()
+    # load all labels (no skips)
     labels = mne.read_labels_from_annot(
-        'fsaverage', parcellation, regexp=regexp, subjects_dir=subjects_dir)
+        'fsaverage', parcellation, subjects_dir=subjects_dir)
     # morph labels
-    for subj in subjects:
-        this_labels = mne.morph_labels(
-            labels, subject_to=subj, subject_from='fsaverage',
-            subjects_dir=subjects_dir)
-        mne.write_labels_to_annot(
-            labels=this_labels, subject=subj, parc=parcellation,
-            subjects_dir=subjects_dir, overwrite=False)
+    new_labels = mne.morph_labels(
+        labels, subject_to=surrogate, subject_from='fsaverage',
+        subjects_dir=subjects_dir)
+    mne.write_labels_to_annot(
+        labels=new_labels, subject=surrogate, parc=parcellation,
+        subjects_dir=subjects_dir, overwrite=False)
