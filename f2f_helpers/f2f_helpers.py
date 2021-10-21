@@ -41,10 +41,8 @@ def get_skip_regexp(regions=(), skip_unknown=True):
     unknown = ('unknown', r'\?\?\?')
     if skip_unknown:
         regions = regions + unknown
-    skip_labels = tuple(f'{region}-{hemi}'
-                        for region in regions for hemi in ('lh', 'rh'))
-    if len(skip_labels):
-        return f"(?!{'|'.join(skip_labels)})"
+    if len(regions):
+        return f"(?!{'|'.join(regions)})"
 
 
 def get_slug(subject, freq_band, condition, parcellation=None):
