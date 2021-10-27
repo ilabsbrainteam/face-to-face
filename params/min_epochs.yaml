@@ -1,1 +1,11 @@
-80
+- length: 1
+  overlap: 0.5
+  n_min: 90
+
+- length: 3
+  overlap: 1
+  n_min: 20
+
+- length: 7
+  overlap: 7
+  n_min: 10

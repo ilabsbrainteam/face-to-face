@@ -3,6 +3,7 @@
 import os
 import yaml
 from functools import partial
+import numpy as np
 import mne
 
 paramdir = os.path.join('..', 'params')
@@ -101,3 +102,22 @@ def get_roi_labels(subject, param_dir, parc='aparc', merge=None):
                 merged_label.color = label_colors[color_key]
                 labels.append(merged_label)
     return labels
+
+
+def compute_epoch_offsets(length, overlap, orig_dur, sfreq, n_min=None):
+    """Compute sample offsets for chopping a long epoch into shorter ones.
+
+    Note: n_min is ignored, included in signature only because it's part of the
+    dicts that get passed in by dict unpacking.
+    """
+    spacing = length - overlap
+    if spacing == 0:
+        n_epochs = 1
+    else:
+        n_epochs = int((orig_dur - length) // spacing) + 1
+    offsets = np.linspace(0, orig_dur - length, n_epochs)
+    offset_samps = np.rint(offsets * sfreq).astype(int)
+    # make sure subsequent trials don't overlap too much
+    assert np.all(np.diff(offset_samps) >= np.floor(spacing * sfreq))
+    # make 2D and vertical
+    return np.stack([offset_samps], axis=1)

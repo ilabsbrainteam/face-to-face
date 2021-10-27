@@ -32,13 +32,6 @@ from mnefun._paths import (get_raw_fnames, get_event_fnames)
 # 3 = trial start ("attend" condition)
 # 5 = trial start ("ignore" condition)
 
-# config
-orig_dur = 7   # original trial duration
-new_dur = 1    # desired epoch duration
-spacing = 0.5  # epoch spacing (in seconds)
-n_epochs = int((orig_dur - new_dur) // spacing) + 1
-offsets = np.linspace(0, orig_dur - new_dur, n_epochs)
-
 
 def f2f_score(p, subjects):
     for si, subject in enumerate(subjects):
@@ -47,7 +40,6 @@ def f2f_score(p, subjects):
         event_fnames = get_event_fnames(p, subject, run_indices=None)
         for fname, event_fname in zip(fnames, event_fnames):
             raw = mne.io.read_raw_fif(fname, allow_maxshield=True)
-            sfreq = raw.info['sfreq']
             events = mne.find_events(raw, shortest_event=1)
             # discard 1-triggers. note that one subject had different
             # triggering (8s instead of 2s, not sure why)
@@ -56,15 +48,6 @@ def f2f_score(p, subjects):
             new_events = np.empty((0, 3))
             for row in events[mask]:
                 new_event_code = 55 if row[-1] == 5 else 31
-                offset_samp = np.rint(offsets * sfreq).astype(int)
-                offset_samp = np.stack([offset_samp], axis=1)
-                offset_events = np.hstack((
-                    offset_samp + row[0],
-                    np.zeros_like(offset_samp),
-                    np.full_like(offset_samp, new_event_code)
-                ))
-                new_events = np.vstack((new_events, offset_events))
-            # make sure subsequent trials don't overlap too much
-            assert np.all(np.diff(new_events[:, 0]) >=
-                          np.floor(spacing * sfreq))
+                new_row = np.hstack((row[0], 0, new_event_code))
+                new_events = np.vstack((new_events, new_row))
             mne.write_events(event_fname, new_events)

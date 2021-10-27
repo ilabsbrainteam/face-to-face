@@ -19,7 +19,6 @@ import mnefun
 from f2f_helpers import load_paths, load_subjects, load_params, get_slug
 
 # flags
-freq_bands = ('delta', 'theta', 'beta')
 conditions = ('attend', 'ignore', 'attend-ignore')
 parcellation = 'aparc'
 threshold_prop = 0.15
@@ -45,6 +44,7 @@ cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
+freq_bands = load_params(os.path.join('..', 'params', 'freq_bands.yaml'))
 
 # handle colormap lims
 cmaps = dict(positive=get_cmap('viridis').copy(),

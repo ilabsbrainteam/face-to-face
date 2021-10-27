@@ -15,9 +15,6 @@ from mne_connectivity import envelope_correlation
 import mnefun
 from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 
-# flags
-freq_bands = ('delta', 'theta', 'beta')
-
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
 *_, results_root_dir = load_paths(include_inv_params=False)
@@ -38,6 +35,7 @@ cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
+freq_bands = load_params(os.path.join('..', 'params', 'freq_bands.yaml'))
 
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 

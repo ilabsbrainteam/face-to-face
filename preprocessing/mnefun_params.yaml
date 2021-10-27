@@ -130,19 +130,15 @@ preprocessing:
 
     epoching:
         # time
-        decim: 10
+        decim: 1
         baseline: individual
         bmin: 0.0
         bmax: 1.0
         tmin: 0.0
-        tmax: 1.0
+        tmax: 7.0
         t_adjust: -0.004
         # rejection
-        autoreject_thresholds: True
-        autoreject_types: [mag, grad]
-        reject_epochs_by_annot: True
-        reject_tmin: null
-        reject_tmax: null
+        reject: null
         # analyses
         analyses: [All, Conditions]
         in_names: &in_names
@@ -152,7 +148,7 @@ preprocessing:
         out_names: [['all'], *in_names]
         out_numbers: [[1, 1],  # combine all trials
                       [1, 2]]  # do attend/ignore separately
-        must_match: [[], [0, 1]]
+        must_match: [[], []]
         # other
         epochs_proj: delayed
 
