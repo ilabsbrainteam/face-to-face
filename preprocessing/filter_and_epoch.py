@@ -72,10 +72,19 @@ for subj in subjects:
             min_n_epochs = epoch_dict['n_min']
             new_events = np.empty((0, 3), dtype=int)
             event_codes = list(epochs.event_id.values())
+            enough = True
             for code in event_codes:
                 mask = epochs.events[:, -1] == code
+                if sum(mask) < min_n_epochs:
+                    enough = False
+                    msg = (f'no {int(epoch_dict["length"])}-second epochs '
+                           f'written for subject {subj} (need {min_n_epochs} '
+                           f'epochs, got {sum(mask)})')
                 new_events = np.vstack((
                     new_events, epochs.events[mask][:min_n_epochs]))
+            if not enough:
+                raise RuntimeWarning(msg)
+                continue
             # restore temporal order of events
             new_events = new_events[np.argsort(new_events[:, 0])]
             equalized_selection = np.nonzero(
