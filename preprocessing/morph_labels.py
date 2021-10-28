@@ -12,7 +12,7 @@ import mne
 from f2f_helpers import load_paths, load_params
 
 # "aparc" already exists for surrogate
-parcellations = ('aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
+parcellations = ('aparc', 'aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -32,4 +32,9 @@ for parcellation in parcellations:
         subjects_dir=subjects_dir)
     mne.write_labels_to_annot(
         labels=new_labels, subject=surrogate, parc=parcellation,
-        subjects_dir=subjects_dir, overwrite=False)
+        subjects_dir=subjects_dir, overwrite=True)
+    # save labels
+    for label in new_labels:
+        fname = f'{label.hemi}.{label.name.rsplit("-", maxsplit=1)[0]}.label'
+        fpath = os.path.join(subjects_dir, surrogate, 'label', fname)
+        mne.write_label(fpath, label)
