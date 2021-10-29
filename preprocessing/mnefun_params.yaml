@@ -139,6 +139,7 @@ preprocessing:
         t_adjust: -0.004
         # rejection
         reject: null
+        reject_epochs_by_annot: false
         # analyses
         analyses: [All, Conditions]
         in_names: &in_names
