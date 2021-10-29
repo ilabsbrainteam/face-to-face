@@ -8,6 +8,8 @@ license: MIT
 """
 
 import os
+import yaml
+from collections import defaultdict
 import numpy as np
 import mne
 import mnefun
@@ -32,6 +34,8 @@ orig_dur = mnefun_params.tmax - mnefun_params.tmin
 epoch_strategies = load_params(os.path.join('..', 'params', 'min_epochs.yaml'))
 freq_bands = load_params(os.path.join('..', 'params', 'freq_bands.yaml'))
 
+not_enough = defaultdict(set)
+
 for subj in subjects:
     # load raw
     _dir = os.path.join(data_root, subj)
@@ -51,7 +55,8 @@ for subj in subjects:
                            .filter(l_freq, h_freq, n_jobs='cuda'))
         # loop over epoch lengths
         for epoch_dict in epoch_strategies:
-            slug = f'{subj}-{int(epoch_dict["length"])}sec'
+            n_sec = int(epoch_dict["length"])
+            slug = f'{subj}-{n_sec}sec'
             # load events
             eve_fpath = os.path.join(eve_dir, f'{slug}-eve.txt')
             events = mne.read_events(eve_fpath)
@@ -76,14 +81,11 @@ for subj in subjects:
             for code in event_codes:
                 mask = epochs.events[:, -1] == code
                 if sum(mask) < min_n_epochs:
+                    not_enough[subj].add(n_sec)
                     enough = False
-                    msg = (f'no {int(epoch_dict["length"])}-second epochs '
-                           f'written for subject {subj} (need {min_n_epochs} '
-                           f'epochs, got {sum(mask)})')
                 new_events = np.vstack((
                     new_events, epochs.events[mask][:min_n_epochs]))
             if not enough:
-                raise RuntimeWarning(msg)
                 continue
             # restore temporal order of events
             new_events = new_events[np.argsort(new_events[:, 0])]
@@ -92,6 +94,10 @@ for subj in subjects:
             epochs = epochs[equalized_selection]
             # save the filtered, decimated, equalized epochs
             epo_fname = (f'{subj}-{freq_band}-band-filtered-'
-                         f'{int(epoch_dict["length"])}sec-epo.fif')
+                         f'{n_sec}sec-epo.fif')
             epochs.save(os.path.join(epo_dir, epo_fname), overwrite=True)
         del filtered_raw
+
+not_enough = {key: sorted(val) for key, val in not_enough}
+with open(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'), 'w') as f:
+    yaml.dump(not_enough, f)
