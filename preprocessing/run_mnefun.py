@@ -45,6 +45,6 @@ mnefun.do_processing(
     gen_covs=False,       # make covariance
     gen_fwd=False,        # generate fwd model
     gen_inv=False,        # generate inverse
-    gen_report=False,     # print report
+    gen_report=True,     # print report
     print_status=True     # show status
 )

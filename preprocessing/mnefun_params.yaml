@@ -139,7 +139,7 @@ preprocessing:
         t_adjust: -0.004
         # rejection
         reject: null
-        reject_epochs_by_annot: false
+        reject_epochs_by_annot: False
         # analyses
         analyses: [All, Conditions]
         in_names: &in_names
@@ -171,8 +171,8 @@ preprocessing:
 
 report:
     bem: False
-    covariance: False
-    drop_log: True
+    covariance: True
+    drop_log: False
     good_hpi_count: True
     source_alignment: True
     source: False
