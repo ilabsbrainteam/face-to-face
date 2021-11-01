@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Sanity check for connectivity degree (beta band should show parietal activity).
+Sanity check for connectivity degree (ideally beta band should show parietal
+activity, though this is technically not "resting state").
 
 authors: Daniel McCloy
 license: MIT
@@ -43,18 +44,18 @@ cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
-
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
+epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 
 for parcellation, skips in labels_to_skip.items():
     regexp = get_skip_regexp(skips)
     for threshold_prop in threshold_props:
-        grandavg_stc = None
-        # load labels
-        labels = mne.read_labels_from_annot(
-            surrogate, parcellation, regexp=regexp, subjects_dir=subjects_dir)
-        label_names = [label.name for label in labels]
+        grandavg_stc = dict()
         for subj in subjects:
+            # load labels
+            labels = mne.read_labels_from_annot(
+                subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
+            label_names = [label.name for label in labels]
             # load source space (from inverse)
             inv_fnames = dict(
                 erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -64,35 +65,44 @@ for parcellation, skips in labels_to_skip.items():
             inv_fname = inv_fnames[cov_type]
             inv_fpath = os.path.join(data_root, subj, 'inverse', inv_fname)
             source_space = read_inverse_operator(inv_fpath)['src']
-            # load connectivity
-            slug = get_slug(subj, freq_band, condition, parcellation)
-            conn_fname = (f'{slug}-envelope-correlation.nc')
-            conn_fpath = os.path.join(conn_dir, conn_fname)
-            conn = mne_connectivity.read_connectivity(conn_fpath)
-            full_degree = mne_connectivity.degree(conn, threshold_prop)
-            # convert to STC
-            stc = mne.labels_to_stc(labels, full_degree)
-            stc = stc.in_label(
-                mne.Label(source_space[0]['vertno'], hemi='lh') +
-                mne.Label(source_space[1]['vertno'], hemi='rh'))
-            # aggregate
-            if grandavg_stc is None:
-                grandavg_stc = stc
-            else:
-                grandavg_stc.data += stc.data
-            del conn, full_degree
-        grandavg_stc.data /= len(subjects)
+            # loop over epoch lengths
+            for epoch_dict in epoch_strategies:
+                n_sec = int(epoch_dict["length"])
+                # load connectivity
+                slug = get_slug(subj, freq_band, condition, parcellation)
+                conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
+                conn_fpath = os.path.join(conn_dir, conn_fname)
+                conn = mne_connectivity.read_connectivity(conn_fpath)
+                full_degree = mne_connectivity.degree(conn, threshold_prop)
+                # convert to STC
+                stc = mne.labels_to_stc(labels, full_degree)
+                stc = stc.in_label(
+                    mne.Label(source_space[0]['vertno'], hemi='lh') +
+                    mne.Label(source_space[1]['vertno'], hemi='rh'))
+                # aggregate
+                if grandavg_stc.get(n_sec, None) is None:
+                    grandavg_stc[n_sec] = stc
+                else:
+                    grandavg_stc[n_sec].data += stc.data
+                del conn, full_degree
 
-        # plot grand average STC
-        brain = grandavg_stc.plot(
-            clim=dict(kind='percent', lims=[75, 85, 95]),
-            colormap='plasma',
-            subjects_dir=subjects_dir,
-            views=['lateral', 'medial', 'dorsal'], hemi='split',
-            smoothing_steps='nearest', time_label=f'{freq_band} band',
-            size=(900, 1200), background='w', title=slug)
-        # save
-        slug = get_slug('grandavg', freq_band, condition, parcellation)
-        img_fname = (f'{slug}-degree-thresh_{threshold_prop:.02f}.png')
-        brain.save_image(os.path.join(plot_dir, img_fname))
-        brain.close()
+        # finish aggregation over subjects
+        for epoch_dict in epoch_strategies:
+            n_sec = int(epoch_dict["length"])
+            grandavg_stc[n_sec].data /= len(subjects)
+
+            # plot grand average STC for each epoch duration
+            brain = grandavg_stc.plot(
+                clim=dict(kind='percent', lims=[75, 85, 95]),
+                colormap='plasma',
+                subjects_dir=subjects_dir,
+                views=['lateral', 'medial', 'dorsal'], hemi='split',
+                smoothing_steps='nearest',
+                time_label=f'{freq_band} band, {n_sec}-second epochs',
+                size=(900, 1200), background='w', title=slug)
+            # save
+            slug = get_slug('grandavg', freq_band, condition, parcellation)
+            img_fname = (f'{slug}-{n_sec}sec-degree-thresh_'
+                         f'{threshold_prop:.02f}.png')
+            brain.save_image(os.path.join(plot_dir, img_fname))
+            brain.close()
