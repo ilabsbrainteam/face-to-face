@@ -38,8 +38,12 @@ lp_cut = int(mnefun_params.lp_cut)
 freq_bands = load_params(os.path.join(param_dir, 'freq_bands.yaml'))
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
+excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 
 for subj in subjects:
+    # check if we should skip
+    if subj in excludes and len(excludes[subj]) == len(epoch_strategies):
+        continue
     # load inverse
     inv_fnames = dict(
         erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -57,7 +61,10 @@ for subj in subjects:
     # load epochs
     for freq_band in freq_bands:
         for epoch_dict in epoch_strategies:
+            # check if we should skip
             n_sec = int(epoch_dict["length"])
+            if subj in excludes and n_sec in excludes[subj]:
+                continue
             slug = f'{subj}-{n_sec}sec'
             epo_fname = f'{subj}-{freq_band}-band-filtered-{n_sec}sec-epo.fif'
             epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
