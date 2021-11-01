@@ -35,9 +35,9 @@ cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
-freq_bands = load_params(os.path.join('..', 'params', 'freq_bands.yaml'))
-
+freq_bands = load_params(os.path.join(param_dir, 'freq_bands.yaml'))
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
+epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 
 for subj in subjects:
     # load inverse
@@ -49,45 +49,50 @@ for subj in subjects:
     inv_fpath = os.path.join(data_root, subj, 'inverse', inv_fname)
     inv_operator = read_inverse_operator(inv_fpath)
     src = inv_operator['src']
-    snr = 1.0  # assume lower SNR for single epochs
+    snr = 1.0  # assume low SNR for single epochs
     lambda2 = 1.0 / snr ** 2
     method = inv_params['method']
     pick_ori = (None if inv_params['estimate_type'] == 'magnitude' else
                 inv_params['estimate_type'])
     # load epochs
     for freq_band in freq_bands:
-        epo_fname = f'{subj}-{freq_band}-band-filtered-epo.fif'
-        epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
-        # do hilbert in sensor space (faster)
-        epochs.apply_hilbert()
-        # apply inverse
-        stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
-                                    pick_ori=pick_ori, return_generator=False)
-        # get average signal in each label
-        for parcellation, skips in labels_to_skip.items():
-            # load labels
-            regexp = get_skip_regexp(skips)
-            labels = mne.read_labels_from_annot(
-                subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
-            label_names = [label.name for label in labels]
-            # mode=mean doesn't risk signal cancellation if using only the
-            # magnitude of a (usu. free orientation constraint) inverse
-            mode = ('mean' if inv_params['estimate_type'] == 'magnitude' else
-                    'auto')
-            label_timeseries = mne.extract_label_time_course(
-                stcs, labels, src, mode=mode, return_generator=False)
-            label_timeseries = np.array(label_timeseries)
-            # compute connectivity across all trials & in each condition
-            for condition in tuple(epochs.event_id) + ('allconds',):
-                _ids = (tuple(epochs.event_id.values())
-                        if condition == 'allconds' else
-                        (epochs.event_id[condition],))
-                indices = np.in1d(epochs.events[:, -1], _ids)
-                conn = envelope_correlation(label_timeseries[indices],
-                                            names=label_names
-                                            ).combine('median')
-                # save
-                conn_fname = (f'{parcellation}-{subj}-{condition}-'
-                              f'{freq_band}-band-envelope-correlation.nc')
-                conn_fpath = os.path.join(conn_dir, conn_fname)
-                conn.save(conn_fpath)
+        for epoch_dict in epoch_strategies:
+            n_sec = int(epoch_dict["length"])
+            slug = f'{subj}-{n_sec}sec'
+            epo_fname = f'{subj}-{freq_band}-band-filtered-{n_sec}sec-epo.fif'
+            epochs = mne.read_epochs(os.path.join(epo_dir, epo_fname))
+            # do hilbert in sensor space (faster)
+            epochs.apply_hilbert()
+            # apply inverse
+            stcs = apply_inverse_epochs(epochs, inv_operator, lambda2, method,
+                                        pick_ori=pick_ori)
+            # get average signal in each label
+            for parcellation, skips in labels_to_skip.items():
+                # load labels
+                regexp = get_skip_regexp(skips)
+                labels = mne.read_labels_from_annot(
+                    subj, parcellation, regexp=regexp,
+                    subjects_dir=subjects_dir)
+                label_names = [label.name for label in labels]
+                # mode=mean doesn't risk signal cancellation if using only the
+                # magnitude of a (usu. free orientation constraint) inverse
+                mode = ('mean' if inv_params['estimate_type'] == 'magnitude'
+                        else 'auto')
+                label_timeseries = mne.extract_label_time_course(
+                    stcs, labels, src, mode=mode, return_generator=False)
+                label_timeseries = np.array(label_timeseries)
+                # compute connectivity across all trials & in each condition
+                for condition in tuple(epochs.event_id) + ('allconds',):
+                    _ids = (tuple(epochs.event_id.values())
+                            if condition == 'allconds' else
+                            (epochs.event_id[condition],))
+                    indices = np.in1d(epochs.events[:, -1], _ids)
+                    conn = envelope_correlation(label_timeseries[indices],
+                                                names=label_names
+                                                ).combine('median')
+                    # save
+                    conn_fname = (f'{parcellation}-{subj}-{condition}-'
+                                  f'{freq_band}-band-{n_sec}sec-'
+                                  'envelope-correlation.nc')
+                    conn_fpath = os.path.join(conn_dir, conn_fname)
+                    conn.save(conn_fpath)
