@@ -96,6 +96,6 @@ for subj in subjects:
             epochs.save(os.path.join(epo_dir, epo_fname), overwrite=True)
         del filtered_raw
 
-not_enough = {key: sorted(val) for key, val in not_enough}
+not_enough = {key: sorted(val) for key, val in not_enough.items()}
 with open(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'), 'w') as f:
     yaml.dump(not_enough, f)
