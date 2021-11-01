@@ -28,7 +28,6 @@ subjects = load_subjects()
 mnefun_params_fname = os.path.join('..', 'preprocessing', 'mnefun_params.yaml')
 mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
-orig_dur = mnefun_params.tmax - mnefun_params.tmin
 epoch_strategies = load_params(os.path.join('..', 'params', 'min_epochs.yaml'))
 freq_bands = load_params(os.path.join('..', 'params', 'freq_bands.yaml'))
 
