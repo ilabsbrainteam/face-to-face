@@ -26,7 +26,9 @@ threshold_props = np.linspace(0.05, 0.5, 10)
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
+*_, results_root_dir = load_paths(include_inv_params=False)
 param_dir = os.path.join('..', 'params')
+epo_dir = os.path.join(results_root_dir, 'epochs')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
 plot_dir = os.path.join(results_dir, 'figs', 'thresh-prop')
 for _dir in (plot_dir,):
@@ -46,12 +48,25 @@ mnefun_params = mnefun.read_params(mnefun_params_fname)
 lp_cut = int(mnefun_params.lp_cut)
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
+excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
+
+# precompute how many excluded subjs per epoch length
+for epoch_dict in epoch_strategies:
+    epoch_dict['n_excludes'] = 0
+    n_sec = int(epoch_dict["length"])
+    for exclude in excludes.values():
+        if n_sec in exclude:
+            epoch_dict['n_excludes'] += 1
 
 for parcellation, skips in labels_to_skip.items():
     regexp = get_skip_regexp(skips)
     for threshold_prop in threshold_props:
         grandavg_stc = dict()
         for subj in subjects:
+            # check if we should skip
+            if (subj in excludes and
+                    len(excludes[subj]) == len(epoch_strategies)):
+                continue
             # load labels
             labels = mne.read_labels_from_annot(
                 subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
@@ -67,7 +82,10 @@ for parcellation, skips in labels_to_skip.items():
             source_space = read_inverse_operator(inv_fpath)['src']
             # loop over epoch lengths
             for epoch_dict in epoch_strategies:
+                # check if we should skip
                 n_sec = int(epoch_dict["length"])
+                if subj in excludes and n_sec in excludes[subj]:
+                    continue
                 # load connectivity
                 slug = get_slug(subj, freq_band, condition, parcellation)
                 conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
@@ -89,10 +107,11 @@ for parcellation, skips in labels_to_skip.items():
         # finish aggregation over subjects
         for epoch_dict in epoch_strategies:
             n_sec = int(epoch_dict["length"])
-            grandavg_stc[n_sec].data /= len(subjects)
+            n_excludes = epoch_dict['n_excludes']
+            grandavg_stc[n_sec].data /= (len(subjects) - n_excludes)
 
             # plot grand average STC for each epoch duration
-            brain = grandavg_stc.plot(
+            brain = grandavg_stc[n_sec].plot(
                 clim=dict(kind='percent', lims=[75, 85, 95]),
                 colormap='plasma',
                 subjects_dir=subjects_dir,
