@@ -1,21 +1,26 @@
 aparc:
-    - posteriorcingulate
-    - medialorbitofrontal
-    - lateralorbitofrontal
-    - insula
-    - parsopercularis
-    - parsorbitalis
-    - parstriangularis
-    - middletemporal
-    - inferiortemporal
-    - superiortemporal
-    - temporalpole
-    - inferiorparietal
-    - superiorparietal
-    - rostralanteriorcingulate
-    - caudalanteriorcingulate
-
-
+    lh:
+        - superiortemporal
+        - middletemporal
+        - inferiortemporal
+        - bankssts
+        - supramarginal
+        - parsopercularis
+        - precentral
+        - insula
+        - caudalmiddlefrontal
+        - rostralmiddlefrontal
+        - inferiorparietal
+        - superiorparietal
+    rh:
+        - superiortemporal
+        - middletemporal
+        - inferiortemporal
+        - bankssts
+        - supramarginal
+        - rostralmiddlefrontal
+        - inferiorparietal
+        - superiorparietal
 f2f_custom:
     lh:
         phonetics:  # dorsal STG (bilateral)
