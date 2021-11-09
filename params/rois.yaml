@@ -16,7 +16,7 @@ aparc:
     - caudalanteriorcingulate
 
 
-aparc_sub:
+f2f_custom:
     lh:
         phonetics:  # dorsal STG (bilateral)
             - superiortemporal_1

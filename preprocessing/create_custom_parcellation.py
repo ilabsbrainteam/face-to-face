@@ -61,7 +61,7 @@ labels = mne.read_labels_from_annot(
 label_dict = {label.name: label for label in labels}
 
 # create the ROI labels
-roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))[parcellation]
+roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))['f2f_custom']
 roi_labels = list()
 used_labels = dict()
 for hemi, rois in roi_dict.items():
