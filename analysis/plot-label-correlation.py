@@ -12,15 +12,12 @@ import numpy as np
 from matplotlib.pyplot import close as closefig
 import pandas as pd
 import seaborn as sns
-import mne
 import mne_connectivity
-from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
-                         get_skip_regexp)
+from f2f_helpers import load_paths, load_subjects, load_params, get_slug
 
 # flags
 freq_band = 'theta'
 condition = 'allconds'
-parcellation = 'aparc'
 threshold_prop = 0.15
 corr_thresh = 0.8
 
@@ -48,18 +45,13 @@ cmap = sns.diverging_palette(s=30, l=67, as_cmap=True, **cmap_kwargs)
 extremes = sns.diverging_palette(s=100, l=33, n=2, **cmap_kwargs)
 cmap.set_extremes(under=extremes[0], over=extremes[1])
 
-# load labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 
-for parcellation, skips in labels_to_skip.items():
-    regexp = get_skip_regexp(skips)
-    labels = mne.read_labels_from_annot(
-        surrogate, parc=parcellation, regexp=regexp, subjects_dir=subjects_dir)
-
+for parcellation in labels_to_skip:
     # loop over epoch lengths
     for epoch_dict in epoch_strategies:
-        degree = np.zeros((0, len(labels)), dtype=int)
-        n_sec = int(epoch_dict["length"])
+        degree = None
+        n_sec = int(epoch_dict['length'])
         for subj in subjects:
             # check if we should skip
             if subj in excludes and n_sec in excludes[subj]:
@@ -70,12 +62,15 @@ for parcellation, skips in labels_to_skip.items():
             conn_fpath = os.path.join(conn_dir, conn_fname)
             conn = mne_connectivity.read_connectivity(conn_fpath)
             this_degree = mne_connectivity.degree(conn, threshold_prop)
-            degree = np.vstack((degree, this_degree))
+            if degree is None:
+                degree = this_degree.copy()
+            else:
+                degree = np.vstack((degree, this_degree))
 
         corr = np.corrcoef(degree, rowvar=False)
         corr_df = pd.DataFrame(corr, index=conn.names, columns=conn.names)
         heatmap_kwargs = dict(cmap=cmap, vmin=-corr_thresh, vmax=corr_thresh)
-        inches = np.round(len(labels), -1) // 5
+        inches = np.round(degree.shape[1], -1) // 5
         figsize = (inches, inches)
         # make separate dfs for each hemisphere (we never merge across hemis)
         for hemi in ('lh', 'rh'):
