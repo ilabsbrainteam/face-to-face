@@ -26,17 +26,18 @@ Brain = mne.viz.get_brain_class()
 
 # plot each parcellation
 for parcellation in parcellations:
-    brain = Brain(
-        surrogate, hemi='split', surf='inflated', size=(1200, 900),
-        cortex='low_contrast', views=['lateral', 'medial'], background='white',
-        subjects_dir=subjects_dir)
-    # load all labels except "unknown" or "???"
-    regexp = get_skip_regexp()
-    labels = mne.read_labels_from_annot(
-        surrogate, parcellation, regexp=regexp, subjects_dir=subjects_dir)
-    for label in labels:
-        brain.add_label(label, alpha=0.4)
-        brain.add_label(label, borders=True)
-    brain.save_image(os.path.join(plot_dir, f'{parcellation}.png'))
-    brain.close()
-    del brain
+    for surf in ('pial', 'inflated'):
+        brain = Brain(
+            surrogate, hemi='split', surf=surf, size=(1200, 900),
+            cortex='low_contrast', views=['lateral', 'medial'],
+            background='white', subjects_dir=subjects_dir)
+        # load all labels except "unknown" or "???"
+        regexp = get_skip_regexp()
+        labels = mne.read_labels_from_annot(
+            surrogate, parcellation, regexp=regexp, subjects_dir=subjects_dir)
+        for label in labels:
+            brain.add_label(label, alpha=0.4)
+            brain.add_label(label, borders=True)
+        brain.save_image(os.path.join(plot_dir, f'{parcellation}-{surf}.png'))
+        brain.close()
+        del brain
