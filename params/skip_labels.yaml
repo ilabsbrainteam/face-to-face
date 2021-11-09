@@ -1,5 +1,6 @@
 # NB: get_skip_regexp() ignores "???" & "unknown" by default
-aparc: !!python/tuple ['entorhinal']  # source space has no vertices in label
+aparc: &aparc_ !!python/tuple ['entorhinal']  # source space has no vertices in label
 aparc_sub: !!python/tuple []
 HCPMMP1_combined: !!python/tuple []
 HCPMMP1: !!python/tuple []
+f2f_custom: *aparc_  # derived from aparc

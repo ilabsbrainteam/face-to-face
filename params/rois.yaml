@@ -1,15 +1,127 @@
-['posteriorcingulate',
- 'medialorbitofrontal',
- 'lateralorbitofrontal',
- 'insula',
- 'parsopercularis',
- 'parsorbitalis',
- 'parstriangularis',
- 'middletemporal',
- 'inferiortemporal',
- 'superiortemporal',
- 'temporalpole',
- 'inferiorparietal',
- 'superiorparietal',
- 'rostralanteriorcingulate',
- 'caudalanteriorcingulate']
+aparc:
+    - posteriorcingulate
+    - medialorbitofrontal
+    - lateralorbitofrontal
+    - insula
+    - parsopercularis
+    - parsorbitalis
+    - parstriangularis
+    - middletemporal
+    - inferiortemporal
+    - superiortemporal
+    - temporalpole
+    - inferiorparietal
+    - superiorparietal
+    - rostralanteriorcingulate
+    - caudalanteriorcingulate
+
+
+aparc_sub:
+    lh:
+        phonetics:  # dorsal STG (bilateral)
+            - superiortemporal_1
+            - superiortemporal_2
+            - superiortemporal_3
+            - superiortemporal_4
+            - superiortemporal_5
+        phonology:  # mid-post STS (bilateral)
+            - bankssts_1
+            - bankssts_2
+            - bankssts_3
+        lexical: # posterior MTG & ITS (bilateral)
+            - middletemporal_1
+            - middletemporal_2
+            - middletemporal_3
+            - inferiortemporal_5
+            - inferiortemporal_7
+            - inferiortemporal_8
+        sensorimotor:  # parietal-temporal Spt (left)
+            - supramarginal_1
+            - supramarginal_2
+            - supramarginal_6
+        articulatory:  # posterior IFG, anterior insula (left)
+            - parsopercularis_1
+            - parsopercularis_2
+            - parsopercularis_3
+            - parsopercularis_4
+            - precentral_12
+            - precentral_13
+            - precentral_14
+            - precentral_15
+            - precentral_16
+            - insula_5
+            - insula_6
+            - insula_7
+        premotor:
+            - caudalmiddlefrontal_1
+            - caudalmiddlefrontal_2
+            - caudalmiddlefrontal_3
+            - caudalmiddlefrontal_4
+            - caudalmiddlefrontal_5
+            - caudalmiddlefrontal_6
+        combinatorial:  # anterior MTG & ITS (left?)
+            - middletemporal_6
+            - middletemporal_7
+            - inferiortemporal_1
+            - inferiortemporal_2
+        FEF:
+            - rostralmiddlefrontal_1
+            - rostralmiddlefrontal_2
+            - rostralmiddlefrontal_3
+            - rostralmiddlefrontal_4
+            - rostralmiddlefrontal_5
+        IPS:
+            - inferiorparietal_1
+            - inferiorparietal_2
+            - inferiorparietal_7
+            - inferiorparietal_8
+            - inferiorparietal_9
+            - superiorparietal_5
+            - superiorparietal_6
+            - superiorparietal_11
+            - superiorparietal_12
+    rh:
+        phonetics:  # dorsal STG (bilateral)
+            - superiortemporal_1
+            - superiortemporal_2
+            - superiortemporal_4
+            - superiortemporal_5
+        phonology:  # mid-post STS (bilateral)
+            - bankssts_1
+            - bankssts_2
+            - bankssts_3
+        lexical: # posterior MTG & ITS (bilateral)
+            - middletemporal_1
+            - middletemporal_2
+            - middletemporal_3
+            - inferiortemporal_5
+            - inferiortemporal_6
+            - inferiortemporal_7
+        IPS:
+            - inferiorparietal_1
+            - inferiorparietal_6
+            - inferiorparietal_7
+            - inferiorparietal_12
+            - superiorparietal_1
+            - superiorparietal_7
+            - superiorparietal_10
+            - superiorparietal_11
+        FEF:
+            - rostralmiddlefrontal_1
+            - rostralmiddlefrontal_2
+            - rostralmiddlefrontal_3
+            - rostralmiddlefrontal_4
+            - rostralmiddlefrontal_5
+        TPJ:
+            - supramarginal_2
+            - supramarginal_3
+            - supramarginal_4
+            - supramarginal_5
+            - inferiorparietal_2
+            - inferiorparietal_3
+            - inferiorparietal_4
+            - inferiorparietal_5
+            - inferiorparietal_8
+            - inferiorparietal_9
+            - inferiorparietal_10
+            - inferiorparietal_11
