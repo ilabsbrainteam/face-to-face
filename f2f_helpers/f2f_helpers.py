@@ -4,7 +4,6 @@ import os
 import yaml
 from functools import partial
 import numpy as np
-import mne
 
 paramdir = os.path.join('..', 'params')
 yamload = partial(yaml.load, Loader=yaml.FullLoader)
@@ -50,58 +49,6 @@ def get_slug(subject, freq_band, condition, parcellation=None):
     """Assemble a filename slug from experiment parameters."""
     parcellation = '' if parcellation is None else f'{parcellation}-'
     return f'{parcellation}{subject}-{condition}-{freq_band}-band'
-
-
-def get_roi_labels(subject, param_dir, parc='aparc', merge=None):
-    """Load ROI labels for the given subject."""
-    _, subjects_dir, _ = load_paths()
-    label_colors = {
-        'caudalanteriorcingulate': '#D1BBD7',  # purple, light
-        'inferiorparietal': '#4EB265',  # green, dark
-        'inferiortemporal': '#AE76A3',  # purple
-        'insula': '#CAE0AB',  # green, light
-        'lateralorbitofrontal': '#882E72',  # purple, dark
-        'medialorbitofrontal': '#F7F056',  # yellow
-        'middletemporal': '#1965B0',  # blue, dark
-        'posteriorcingulate': '#F4A736',  # orange, light
-        'rostralanteriorcingulate': '#5289C7',  # blue
-        'superiorparietal': '#E8601C',  # orange
-        'superiortemporal': '#7BAFDE',  # blue, light
-        'temporalpole': '#DC050C',  # red
-        'parsorbitalis': '#90C987',  # green
-        'parsopercularis': '#90C987',  # green
-        'parstriangularis': '#90C987',  # green
-    }
-    # load ROIs
-    rois = load_params(os.path.join(param_dir, 'rois.yaml'))
-    rois_to_merge = list()
-    if merge is not None:
-        for labels_to_merge in merge.values():
-            rois_to_merge.extend(labels_to_merge)
-    rois = set(rois) - set(rois_to_merge)
-    roi_regexp = '|'.join(rois)
-    # get regular labels
-    labels = mne.read_labels_from_annot(
-        subject, parc=parc, subjects_dir=subjects_dir,
-        regexp=roi_regexp)
-    # set label colors
-    for label in labels:
-        label.color = label_colors[label.name.rsplit('-', maxsplit=1)[0]]
-    # get merged labels
-    if merge is not None:
-        for h in ('lh', 'rh'):
-            for name, labels_to_merge in merge.items():
-                _regexp = '|'.join(f'{label}-{h}' for label in labels_to_merge)
-                _labels = mne.read_labels_from_annot(
-                    subject, parc=parc, subjects_dir=subjects_dir,
-                    regexp=_regexp)
-                merged_label = sum(_labels[1:], _labels[0])
-                merged_label.name = f'{name}-{h}'
-                # set merged label color
-                color_key = _labels[0].name.rsplit('-', maxsplit=1)[0]
-                merged_label.color = label_colors[color_key]
-                labels.append(merged_label)
-    return labels
 
 
 def compute_epoch_offsets(length, overlap, orig_dur, sfreq, n_min=None):
