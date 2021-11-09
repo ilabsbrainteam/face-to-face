@@ -38,6 +38,8 @@ aparc_sub:
         sensorimotor:  # parietal-temporal Spt (left)
             - supramarginal_1
             - supramarginal_2
+            - supramarginal_3
+            - supramarginal_5
             - supramarginal_6
         articulatory:  # posterior IFG, anterior insula (left)
             - parsopercularis_1
