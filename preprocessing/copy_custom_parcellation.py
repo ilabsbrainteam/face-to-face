@@ -11,6 +11,11 @@ import os
 import mne
 from f2f_helpers import load_paths, load_params, load_subjects
 
+
+def get_new_label_name(label):
+    return f'{label.hemi}.f2f-{label.name.rsplit("-", maxsplit=1)[0]}'
+
+
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
 param_dir = os.path.join('..', 'params')
@@ -29,12 +34,14 @@ for subj in subjects:
     new_labels = mne.morph_labels(
         labels, subject_to=subj, subject_from=surrogate,
         subjects_dir=subjects_dir)
+    # rename labels
+    for label in new_labels:
+        label.name = get_new_label_name(label)
     mne.write_labels_to_annot(
         labels=new_labels, subject=subj, parc='f2f_custom',
         subjects_dir=subjects_dir, overwrite=True)
     # save labels
     for label in new_labels:
-        fname = (f'{label.hemi}.f2f-{label.name.rsplit("-", maxsplit=1)[0]}'
-                 '.label')
+        fname = f'{label.name}.label'
         fpath = os.path.join(subjects_dir, subj, 'label', fname)
         mne.write_label(fpath, label)

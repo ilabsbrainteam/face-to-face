@@ -28,8 +28,8 @@ for _dir in (plot_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 # load other config values
-parcellation = 'aparc_sub'
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
+skips_dict = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 Brain = mne.viz.get_brain_class()
 
 # setup colors
@@ -46,18 +46,19 @@ colors = dict(
     sensorimotor='#72190E'
 )
 
-# load the reference parcellations
-labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
-                             )[parcellation]
-regexp = get_skip_regexp(labels_to_skip)
-labels = mne.read_labels_from_annot(surrogate, parc=parcellation,
-                                    regexp=regexp, subjects_dir=subjects_dir)
-label_dict = {label.name: label for label in labels}
-# also load aparc (just need the names)
+# load coarse parcellation (just need the names of major regions)
+regexp = get_skip_regexp(skips_dict['aparc'])
 aparc_labels = mne.read_labels_from_annot(
     surrogate, parc='aparc', regexp=regexp, subjects_dir=subjects_dir)
 aparc_names = sorted(set(label.name.split('-')[0] for label in aparc_labels))
 del aparc_labels
+
+# load fine-grained parcellation
+parcellation = 'aparc_sub'
+regexp = get_skip_regexp(skips_dict[parcellation])
+labels = mne.read_labels_from_annot(
+    surrogate, parc=parcellation, regexp=regexp, subjects_dir=subjects_dir)
+label_dict = {label.name: label for label in labels}
 
 # create the ROI labels
 roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))[parcellation]
