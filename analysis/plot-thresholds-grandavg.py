@@ -70,7 +70,6 @@ for parcellation, skips in labels_to_skip.items():
             # load labels
             labels = mne.read_labels_from_annot(
                 subj, parcellation, regexp=regexp, subjects_dir=subjects_dir)
-            label_names = [label.name for label in labels]
             # load source space (from inverse)
             inv_fnames = dict(
                 erm=f'{subj}-meg-erm{orientation_constraint}-inv.fif',
@@ -93,10 +92,8 @@ for parcellation, skips in labels_to_skip.items():
                 conn = mne_connectivity.read_connectivity(conn_fpath)
                 full_degree = mne_connectivity.degree(conn, threshold_prop)
                 # convert to STC
-                stc = mne.labels_to_stc(labels, full_degree)
-                stc = stc.in_label(
-                    mne.Label(source_space[0]['vertno'], hemi='lh') +
-                    mne.Label(source_space[1]['vertno'], hemi='rh'))
+                stc = mne.labels_to_stc(labels, full_degree, subject=subj,
+                                        src=source_space)
                 # aggregate
                 if grandavg_stc.get(n_sec, None) is None:
                     grandavg_stc[n_sec] = stc
