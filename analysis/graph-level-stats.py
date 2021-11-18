@@ -196,7 +196,7 @@ for epoch_dict in epoch_strategies:
           for reg in lambda_sq.coords.dims)))
     print('TOP 1% EDGES WITH STRONGEST DIFFERENCE BETWEEN CONDITIONS:')
     for node_pair in strongest_edges:
-        print(f'{node_pair[0]:20} ←→ {node_pair[1]:>20}')
+        print(f'{node_pair[0]:27} ←→ {node_pair[1]:>27}')
     # plot relative contribution of each edge to the difference
     clust = '-clustered' if cluster_plot else ''
     fname = (f'{parcellation}-{n_sec}sec-{freq_band}-band-'
