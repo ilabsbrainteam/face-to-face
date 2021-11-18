@@ -118,9 +118,7 @@ for epoch_dict in epoch_strategies:
             quantile = 1 - threshold_prop
             indices = np.tril_indices_from(conn_matrix, k=-1)
             threshold = np.quantile(conn_matrix[indices], quantile)
-            # XXX adjacency = (conn_matrix >= threshold).astype(int)
             adjacency = (conn_matrix > 0).astype(int)
-            # XXX assert adjacency.sum() == 2 * n_keep
             conn_measures.loc[condition, subj, 'adjacency'] = adjacency
             # graph laplacian
             graph = nx.Graph(
@@ -129,7 +127,6 @@ for epoch_dict in epoch_strategies:
             mask = np.logical_and(
                 adjacency.astype(bool),
                 np.tril(np.ones_like(adjacency), k=-1).astype(bool))
-            # XXX assert mask.sum() == n_keep
             edges = [(list(graph)[ix], list(graph)[iy], w) for ix, iy, w in
                      zip(*np.nonzero(mask), conn_matrix[mask])]
             graph.add_weighted_edges_from(edges)
