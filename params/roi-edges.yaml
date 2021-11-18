@@ -1,0 +1,23 @@
+# LH dorsal stream
+- !!python/tuple [phonetics-lh, sensorimotor-lh]
+- !!python/tuple [phonology-lh, sensorimotor-lh]
+- !!python/tuple [sensorimotor-lh, articulatory-lh]
+- !!python/tuple [sensorimotor-lh, premotor-lh]
+# RH ventral stream
+- !!python/tuple [phonetics-rh, phonology-rh]
+- !!python/tuple [phonology-rh, lexical-rh]
+# LH ventral stream
+- !!python/tuple [phonetics-lh, phonology-lh]
+- !!python/tuple [phonology-lh, lexical-lh]
+- !!python/tuple [lexical-lh, combinatorial-lh]
+# dorsal/ventral convergence; bilateral link
+- !!python/tuple [combinatorial-lh, articulatory-lh]
+- !!python/tuple [lexical-lh, lexical-rh]
+# LH attention
+- !!python/tuple [FEF-lh, IPS-lh]
+- !!python/tuple [IPS-lh, TPJ-lh]
+- !!python/tuple [TPJ-lh, articulatory-lh]
+# RH attention
+- !!python/tuple [FEF-rh, IPS-rh]
+- !!python/tuple [IPS-rh, TPJ-rh]
+- !!python/tuple [TPJ-rh, VFC-rh]

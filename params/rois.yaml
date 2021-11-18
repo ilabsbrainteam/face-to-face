@@ -44,6 +44,7 @@ f2f_custom:
             - supramarginal_1
             - supramarginal_2
             - supramarginal_3
+            - supramarginal_4
             - supramarginal_5
             - supramarginal_6
         articulatory:  # posterior IFG, anterior insula (left)
@@ -87,6 +88,16 @@ f2f_custom:
             - superiorparietal_6
             - superiorparietal_11
             - superiorparietal_12
+        TPJ:
+            - supramarginal_7
+            - supramarginal_8
+            - supramarginal_9
+            - supramarginal_10
+            - inferiorparietal_3
+            - inferiorparietal_4
+            - inferiorparietal_5
+            - inferiorparietal_6
+            - inferiorparietal_10
     rh:
         phonetics:  # dorsal STG (bilateral)
             - superiortemporal_1
@@ -132,3 +143,13 @@ f2f_custom:
             - inferiorparietal_9
             - inferiorparietal_10
             - inferiorparietal_11
+        VFC:
+            - caudalmiddlefrontal_1
+            - caudalmiddlefrontal_2
+            - caudalmiddlefrontal_3
+            - caudalmiddlefrontal_4
+            - caudalmiddlefrontal_5
+            - parsopercularis_1
+            - parsopercularis_2
+            - parsopercularis_3
+            - parsopercularis_4
