@@ -180,7 +180,13 @@ for epoch_dict in epoch_strategies:
     triu_indices = np.triu_indices_from(lambda_sq)
     lambda_sq.values[triu_indices] = lambda_hat ** 2
     lambda_sq.values.T[triu_indices] = lambda_hat ** 2
+    # sort rows/cols by hemisphere
     df = lambda_sq.to_pandas()
+    sorted_regions = (df.index.to_series()
+                        .str.split('-', expand=True)
+                        .sort_values([1, 0])
+                        .index.tolist())
+    df = df.loc[sorted_regions, sorted_regions]
     # print which edges change the most
     abs_thresh = np.quantile(lambda_hat ** 2, 0.99)
     strongest_ixs = np.nonzero(lambda_hat ** 2 > abs_thresh)
