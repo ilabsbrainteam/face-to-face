@@ -8,6 +8,8 @@ license: MIT
 """
 
 import os
+from functools import reduce
+
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -22,8 +24,12 @@ from rpy2.robjects import numpy2ri
 from rpy2.robjects.packages import importr
 import mne
 import mne_connectivity
+
 from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
                          get_skip_regexp)
+
+corpcor = importr('corpcor')
+numpy2ri.activate()
 
 
 def get_halfvec(array, k=0):
@@ -39,9 +45,9 @@ conditions = ['attend', 'ignore']
 parcellation = 'f2f_custom'  # 'aparc'
 threshold_prop = 0.15
 sns.set(font_scale=0.8)
-corpcor = importr('corpcor')
 cluster_plot = False
-figsize = (32, 32)
+use_edge_rois = True
+figsize = (8, 8) if use_edge_rois else (32, 32)
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -49,8 +55,9 @@ data_root, subjects_dir, results_dir = load_paths()
 epo_dir = os.path.join(results_root_dir, 'epochs')
 param_dir = os.path.join('..', 'params')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
+xarray_dir = os.path.join(results_dir, 'xarrays')
 plot_dir = os.path.join(results_dir, 'figs', 'graph-metrics')
-for _dir in (plot_dir,):
+for _dir in (xarray_dir, plot_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 # load other config values
@@ -60,6 +67,8 @@ epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 durations = [epoch_dict['length'] for epoch_dict in epoch_strategies]
 roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))[parcellation]
+roi_edges = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
+roi_nodes = reduce(tuple.__add__, roi_edges)
 
 # load all labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
@@ -88,7 +97,7 @@ for epoch_dict in epoch_strategies:
     _dtype = np.float64
     _min = np.finfo(_dtype).min
     measures = ['envelope_correlation', 'adjacency', 'graph_laplacian',
-                'lambda_squared']
+                'orthogonal_proj_matrix', 'lambda_squared']
     shape = (len(conditions), n_subj, len(measures), len(labels), len(labels))
     coords = dict(
         condition=conditions, subject=this_subjects, measure=measures,
@@ -134,34 +143,49 @@ for epoch_dict in epoch_strategies:
             laplacian = laplacian_matrix(graph)
             conn_measures.loc[condition, subj,
                               'graph_laplacian'] = laplacian.toarray()
-            # placeholder, used later only in aggregate (not for each subj)
-            conn_measures.loc[condition, subj, 'lambda_squared'] = 0
+    # placeholder, used later only in aggregate (not for each subj)
+    conn_measures.loc[:, :, 'lambda_squared'] = 0
+    # prep for restricting to specific edge ROIs
+    conn_measures.loc[:, :, 'orthogonal_proj_matrix'] = 0
+    for _node1, _node2 in roi_edges:
+        conn_measures.loc[:, :, 'orthogonal_proj_matrix', _node1, _node2] = 1
+        conn_measures.loc[:, :, 'orthogonal_proj_matrix', _node2, _node1] = 1
     # make sure every cell got filled
     assert np.all(conn_measures > _min)
     results[n_sec]['xarray'] = conn_measures
+    roi = 'roi' if use_edge_rois else 'all'
+    fname = (f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges.nc')
+    conn_measures.to_netcdf(os.path.join(xarray_dir, fname))
 
     # compute mean laplacians
-    mean_laplacians = (conn_measures.loc[:, :, 'graph_laplacian']
-                                    .mean(dim='subject'))
+    mean_over_subj = conn_measures.mean(dim='subject')
+    mean_laplacians = mean_over_subj.loc[:, 'graph_laplacian']
     # absence of off-diagonal structural zeros is an assumption of the method
-    for ml in mean_laplacians:
-        offdiag = ml.values[np.tril_indices_from(ml, k=-1)]
+    for _ml in mean_laplacians:
+        offdiag = _ml.values[np.tril_indices_from(_ml, k=-1)]
         assert np.all(offdiag != 0)
-    results[n_sec]['laplacians'] = mean_laplacians
+    results[n_sec]['means'] = mean_over_subj
     # reduce matrices to half-vectorized form (removes redundant entries)
     mean_halfvecs = np.array([get_halfvec(_ml) for _ml in mean_laplacians])
     mean_diff_halfvec = np.diff(mean_halfvecs, axis=0).squeeze()
     subj_laplacians = conn_measures.loc[:, :, 'graph_laplacian']
     subj_diffs = np.diff(subj_laplacians, axis=0).squeeze()
-    subj_halfvecs = np.array([get_halfvec(arr) for arr in subj_diffs])
+    subj_diff_halfvecs = np.array([get_halfvec(arr) for arr in subj_diffs])
+    # restrict halfvecs to just the ROI edges (if desired)
+    halfvec_mask = np.ones_like(mean_diff_halfvec).astype(bool)
+    if use_edge_rois:
+        halfvec_mask = get_halfvec(
+            mean_over_subj.loc['attend', 'orthogonal_proj_matrix']
+            ).astype(bool)
+        assert halfvec_mask.sum() == len(roi_edges)
+    subj_diff_halfvecs = subj_diff_halfvecs[:, halfvec_mask]
+    mean_diff_halfvec = mean_diff_halfvec[halfvec_mask]
     # call out to R to use special shrinkage methods designed for graphs
     # use corpcor.cov_shrink(...) if we need sigma (not just its inverse)
-    numpy2ri.activate()
-    sigma_inv = corpcor.invcov_shrink(subj_halfvecs)
-    numpy2ri.deactivate()
+    sigma_inv = corpcor.invcov_shrink(subj_diff_halfvecs)
     # calculate one-sample t-statistic
     t_observed = n_subj * (mean_diff_halfvec @ sigma_inv @ mean_diff_halfvec)
-    degrees_of_freedom = comb(len(labels), 2, exact=True)
+    degrees_of_freedom = comb(len(mean_diff_halfvec), 2, exact=True)
     pval = chi2.cdf(t_observed, df=degrees_of_freedom)
     # save some results
     results[n_sec]['sigma_inv'] = sigma_inv
@@ -174,12 +198,37 @@ for epoch_dict in epoch_strategies:
                                    n_subj * np.sum(lambda_hat ** 2))
     results[n_sec]['lambda_hat'] = lambda_hat
     # compute relative contribution of each edge to the difference
-    lambda_sq = (conn_measures.loc[:, :, 'lambda_squared']
-                              .mean(dim='subject')
-                              .mean(dim='condition'))
+    lambda_sq = (mean_over_subj.loc[:, 'lambda_squared']
+                               .mean(dim='condition'))
     triu_indices = np.triu_indices_from(lambda_sq)
+    if use_edge_rois:
+        triu_indices = tuple(ixs[halfvec_mask] for ixs in triu_indices)
     lambda_sq.values[triu_indices] = lambda_hat ** 2
     lambda_sq.values.T[triu_indices] = lambda_hat ** 2
+    # make sure we got the right ones
+    if use_edge_rois:
+        for dim, region in enumerate(lambda_sq.coords.dims):
+            nodes = lambda_sq.coords[region].values[np.nonzero(lambda_sq)[dim]]
+            assert set(nodes) == set(roi_nodes)
+    # sort edges by strength of contribution (increasing)
+    ranked_indices = np.argsort(lambda_hat ** 2)
+    ranked_lambda_hat = lambda_hat[ranked_indices]
+    ranked_edge_indices = tuple(x[ranked_indices] for x in triu_indices)
+    ranked_edges = list(zip(
+        *(lambda_sq[ranked_edge_indices].coords[reg].values.tolist()
+          for reg in lambda_sq.coords.dims)))
+    # set cutoff for which ones to print
+    q = 75 if use_edge_rois else 99
+    abs_thresh = np.percentile(lambda_hat ** 2, q)
+    thresh_ix = np.searchsorted(ranked_lambda_hat ** 2, abs_thresh)
+    # print which edges change the most
+    print(f'TOP {100 - q}% EDGES WITH STRONGEST DIFFERENCE BETWEEN '
+          'CONDITIONS (ATTEND MINUS IGNORE):')
+    _slice = slice(None, thresh_ix, -1)
+    for _nodes, _hat in zip(ranked_edges[_slice], ranked_lambda_hat[_slice]):
+        contrib = np.sign(_hat) * (_hat ** 2)
+        print(f'{_nodes[0]:27} ←→ {_nodes[1]:>27}'
+              f'    {round(contrib, 3):<+06.03}')
     # sort rows/cols by hemisphere
     df = lambda_sq.to_pandas()
     sorted_regions = (df.index.to_series()
@@ -187,20 +236,14 @@ for epoch_dict in epoch_strategies:
                         .sort_values([1, 0])
                         .index.tolist())
     df = df.loc[sorted_regions, sorted_regions]
-    # print which edges change the most
-    abs_thresh = np.quantile(lambda_hat ** 2, 0.99)
-    strongest_ixs = np.nonzero(lambda_hat ** 2 > abs_thresh)
-    edge_indices = tuple(x[strongest_ixs] for x in triu_indices)
-    strongest_edges = list(zip(
-        *(lambda_sq[edge_indices].coords[reg].values.tolist()
-          for reg in lambda_sq.coords.dims)))
-    print('TOP 1% EDGES WITH STRONGEST DIFFERENCE BETWEEN CONDITIONS:')
-    for node_pair in strongest_edges:
-        print(f'{node_pair[0]:27} ←→ {node_pair[1]:>27}')
+    if use_edge_rois:
+        ixs = np.nonzero(np.in1d(sorted_regions, roi_nodes)) * 2
+        df = df.iloc[ixs]
     # plot relative contribution of each edge to the difference
     clust = '-clustered' if cluster_plot else ''
+    roi = 'roi-' if use_edge_rois else ''
     fname = (f'{parcellation}-{n_sec}sec-{freq_band}-band-'
-             f'edge-contributions-attend_minus_ignore{clust}.pdf')
+             f'{roi}edge-contributions-attend_minus_ignore{clust}.pdf')
     if cluster_plot:
         cg = sns.clustermap(df, figsize=figsize)
         fig = cg.fig
