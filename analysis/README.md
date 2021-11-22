@@ -1,7 +1,5 @@
 # Analysis pipeline
 
-- run `redo-epoching.py` to bandpass at various frequency bands (specified in
-  the script) and epoch after bandpassing (so we avoid filter edge artifacts)
 - run `compute-connectivity.py` to compute all-to-all envelope connectivity in
   the various frequency bands for a given cortical parcellation (specified in
   the script)
@@ -11,5 +9,9 @@
     - examine the resulting plots to pick a final threshold
 - run `plot-label-correlation.py` to generate a correlation matrix of label
   connectivity degree (correlation across subjs)
-- run `plot-degree.py` to generate per-subject degree plots for the other
-  frequency bands
+- run `make-xarrays.py` to generate an across-subject data object that combines
+  matrices for envelope correlation, adjacency, the graph laplacian, and a
+  binary matrix encoding edge ROIs.
+- run `graph-level-stats.py` to test whether the connectivity is different
+  between "attend" and "ignore" conditions.
+- run `node-level-metrics.py` to compute and plot some node-level comparisons.
