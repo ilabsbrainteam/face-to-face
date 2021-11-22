@@ -14,4 +14,4 @@
   binary matrix encoding edge ROIs.
 - run `graph-level-stats.py` to test whether the connectivity is different
   between "attend" and "ignore" conditions.
-- run `node-level-metrics.py` to compute and plot some node-level comparisons.
+- run `node-level-stats.py` to compute and plot some node-level comparisons.

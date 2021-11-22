@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Compute graph metrics.
+Prepare data for analysis of graph metrics.
 
 authors: Daniel McCloy
 license: MIT
