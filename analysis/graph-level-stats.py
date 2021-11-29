@@ -152,6 +152,18 @@ for use_edge_rois in (False, True):
     fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges.yaml'
     with open(os.path.join(stats_dir, fname), 'w') as f:
         yaml.dump(output, f)
+    # save lambda hat vector and lambda squared matrix
+    coords = {f'region_{ix + 1}': ('edge', list(region))
+              for ix, region in enumerate(zip(*ranked_edges))}
+    lambda_hat_xarray = xr.DataArray(ranked_lambda_hat,
+                                     coords=coords,
+                                     dims=['edge'],
+                                     name='lambda hat')
+    slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
+    fname = f'{slug}-lambda-hat.nc'
+    lambda_hat_xarray.to_netcdf(os.path.join(xarray_dir, fname))
+    fname = f'{slug}-lambda-sq.nc'
+    lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))
 
     # sort rows/cols by hemisphere
     df = lambda_sq.to_pandas()
