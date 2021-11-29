@@ -110,8 +110,8 @@ for use_edge_rois in (False, True):
     triu_indices = np.triu_indices_from(lambda_sq)
     if use_edge_rois:
         triu_indices = tuple(ixs[halfvec_mask] for ixs in triu_indices)
-    lambda_sq.values[triu_indices] = lambda_hat ** 2
-    lambda_sq.values.T[triu_indices] = lambda_hat ** 2
+    lambda_sq.values[triu_indices] = np.sign(lambda_hat) * lambda_hat ** 2
+    lambda_sq.values.T[triu_indices] = np.sign(lambda_hat) * lambda_hat ** 2
     # make sure we got the right indices
     if use_edge_rois:
         for dim, region in enumerate(lambda_sq.coords.dims):
@@ -166,7 +166,7 @@ for use_edge_rois in (False, True):
     lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))
 
     # sort rows/cols by hemisphere
-    df = lambda_sq.to_pandas()
+    df = np.abs(lambda_sq).to_pandas()
     sorted_regions = (df.index.to_series()
                         .str.split('-', expand=True)
                         .sort_values([1, 0])
