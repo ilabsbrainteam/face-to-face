@@ -98,6 +98,17 @@ for use_edge_rois in (False, True):
     # call out to R to use special shrinkage methods designed for graphs
     # use corpcor.cov_shrink(...) if we need sigma (not just its inverse)
     sigma_inv = corpcor.invcov_shrink(subj_diff_halfvecs)
+    # TODO for general implementation: include Higham 2002 algorithm that
+    # ensures positive definiteness / uses nearest (using Frobenius norm)
+    # positive definite neighbor. Pseudocode:
+    #     ∆S_0 = 0, Y_0 = A
+    #     for k = 1, 2, . . .
+    #         R_k = Y_{k−1} − ∆S_{k−1}
+    #         X_k = P_S (R_k)
+    #         ∆S_k = X_k − R_k
+    #         Y_k = P_U (X_k)
+    #     end
+
     # calculate one-sample t-statistic
     t_observed = n_subj * (mean_diff_halfvec @ sigma_inv @ mean_diff_halfvec)
     degrees_of_freedom = comb(len(mean_diff_halfvec), 2, exact=True)
