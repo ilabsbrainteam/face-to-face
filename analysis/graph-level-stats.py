@@ -111,8 +111,10 @@ for use_edge_rois in (False, True):
 
     # calculate one-sample t-statistic
     t_observed = n_subj * (mean_diff_halfvec @ sigma_inv @ mean_diff_halfvec)
-    degrees_of_freedom = comb(len(mean_diff_halfvec), 2, exact=True)
-    pval = chi2.cdf(t_observed, df=degrees_of_freedom)
+    n_nodes = (len(roi_nodes) if use_edge_rois else
+               conn_measures.coords['region_1'].size)
+    degrees_of_freedom = comb(n_nodes, 2, exact=True)
+    pval = 1 - chi2.cdf(t_observed, df=degrees_of_freedom)
     # estimate contribution of each edge to the difference between conditions
     sqrt_inv_sigma = sqrtm(sigma_inv)
     lambda_hat = sqrt_inv_sigma @ mean_diff_halfvec
