@@ -86,12 +86,13 @@ for use_edge_rois in (False, True):
     subj_diffs = np.diff(subj_laplacians, axis=0).squeeze()
     subj_diff_halfvecs = np.array([get_halfvec(arr) for arr in subj_diffs])
     # restrict halfvecs to just the ROI edges (if desired)
-    halfvec_mask = np.ones_like(mean_diff_halfvec).astype(bool)
     if use_edge_rois:
         halfvec_mask = get_halfvec(
             mean_over_subj.loc['attend', 'orthogonal_proj_matrix']
             ).astype(bool)
         assert halfvec_mask.sum() == len(roi_edges)
+    else:
+        halfvec_mask = slice(None)
     subj_diff_halfvecs = subj_diff_halfvecs[:, halfvec_mask]
     mean_diff_halfvec = mean_diff_halfvec[halfvec_mask]
     # call out to R to use special shrinkage methods designed for graphs
