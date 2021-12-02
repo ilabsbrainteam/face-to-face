@@ -59,8 +59,9 @@ for _dir in (stats_dir, plot_dir,):
 subjects = load_subjects()
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
-roi_edges = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
-roi_nodes = reduce(tuple.__add__, roi_edges)
+roi_edge_dict = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
+roi_edges = roi_edge_dict[parcellation]
+roi_nodes = sorted(set(reduce(tuple.__add__, roi_edges)))
 
 # how many subjs are available at this epoch length?
 this_excludes = {subj for subj in excludes if n_sec in excludes[subj]}
@@ -72,6 +73,8 @@ fname = f'{parcellation}-{n_sec}sec-{freq_band}-band.nc'
 conn_measures = xr.open_dataarray(os.path.join(xarray_dir, fname))
 
 for use_edge_rois in (False, True):
+    n_nodes = (len(roi_nodes) if use_edge_rois else
+               conn_measures.coords['region_1'].size)
     # compute mean laplacians
     mean_over_subj = conn_measures.mean(dim='subject')
     mean_laplacians = mean_over_subj.loc[:, 'graph_laplacian']
@@ -88,7 +91,7 @@ for use_edge_rois in (False, True):
     # restrict halfvecs to just the ROI edges (if desired)
     if use_edge_rois:
         halfvec_mask = get_halfvec(
-            mean_over_subj.loc['attend', 'orthogonal_proj_matrix']
+            mean_over_subj.loc['attend', 'orthog_proj_mat']
             ).astype(bool)
         assert halfvec_mask.sum() == len(roi_edges)
     else:
@@ -111,8 +114,6 @@ for use_edge_rois in (False, True):
 
     # calculate one-sample t-statistic
     t_observed = n_subj * (mean_diff_halfvec @ sigma_inv @ mean_diff_halfvec)
-    n_nodes = (len(roi_nodes) if use_edge_rois else
-               conn_measures.coords['region_1'].size)
     degrees_of_freedom = comb(n_nodes, 2, exact=True)
     pval = 1 - chi2.cdf(t_observed, df=degrees_of_freedom)
     # estimate contribution of each edge to the difference between conditions
@@ -163,7 +164,8 @@ for use_edge_rois in (False, True):
         lambda_hat=edge_contributions
     )
     roi = 'roi' if use_edge_rois else 'all'
-    fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges.yaml'
+    slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
+    fname = f'{slug}.yaml'
     with open(os.path.join(stats_dir, fname), 'w') as f:
         yaml.dump(output, f)
     # save lambda hat vector and lambda squared matrix

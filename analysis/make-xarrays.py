@@ -8,7 +8,6 @@ license: MIT
 """
 
 import os
-from functools import reduce
 
 import numpy as np
 import networkx as nx
@@ -42,8 +41,8 @@ subjects = load_subjects()
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
-roi_edges = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
-roi_nodes = reduce(tuple.__add__, roi_edges)
+roi_edge_dict = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
+roi_edges = roi_edge_dict[parcellation]
 
 # load all labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
@@ -63,7 +62,7 @@ for epoch_dict in epoch_strategies:
     _dtype = np.float64
     _min = np.finfo(_dtype).min
     measures = ['envelope_correlation', 'adjacency', 'graph_laplacian',
-                'orthogonal_proj_matrix', 'lambda_squared']
+                'orthog_proj_mat', 'lambda_squared']
     shape = (len(conditions), n_subj, len(measures), len(labels), len(labels))
     coords = dict(
         condition=conditions, subject=this_subjects, measure=measures,
@@ -112,10 +111,13 @@ for epoch_dict in epoch_strategies:
     # placeholder, used later only in aggregate (not for each subj)
     conn_measures.loc[:, :, 'lambda_squared'] = 0
     # prep for restricting to specific edge ROIs
-    conn_measures.loc[:, :, 'orthogonal_proj_matrix'] = 0
-    for _node1, _node2 in roi_edges:
-        conn_measures.loc[:, :, 'orthogonal_proj_matrix', _node1, _node2] = 1
-        conn_measures.loc[:, :, 'orthogonal_proj_matrix', _node2, _node1] = 1
+    if parcellation != 'aparc_sub':
+        conn_measures.loc[:, :, 'orthog_proj_mat'] = 0
+        for _node1, _node2 in roi_edges:
+            conn_measures.loc[:, :, 'orthog_proj_mat', _node1, _node2] = 1
+            conn_measures.loc[:, :, 'orthog_proj_mat', _node2, _node1] = 1
+    else:
+        conn_measures.loc[:, :, 'orthog_proj_mat'] = 1
     # make sure every cell got filled
     assert np.all(conn_measures > _min)
     fname = f'{parcellation}-{n_sec}sec-{freq_band}-band.nc'
