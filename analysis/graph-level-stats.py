@@ -38,6 +38,7 @@ parcellation = 'f2f_custom'  # 'aparc'
 threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
 sns.set(font_scale=0.8)
+plot_matrix = False
 cluster_plot = False
 
 # enable interface to R
@@ -175,32 +176,31 @@ for use_edge_rois in (False, True):
                                      coords=coords,
                                      dims=['edge'],
                                      name='lambda hat')
-    slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
     fname = f'{slug}-lambda-hat.nc'
     lambda_hat_xarray.to_netcdf(os.path.join(xarray_dir, fname))
     fname = f'{slug}-lambda-sq.nc'
     lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))
 
-    # sort rows/cols by hemisphere
-    df = np.abs(lambda_sq).to_pandas()
-    sorted_regions = (df.index.to_series()
-                        .str.split('-', expand=True)
-                        .sort_values([1, 0])
-                        .index.tolist())
-    df = df.loc[sorted_regions, sorted_regions]
-    if use_edge_rois:
-        ixs = np.nonzero(np.in1d(sorted_regions, roi_nodes)) * 2
-        df = df.iloc[ixs]
-    # plot relative contribution of each edge to the difference
-    clust = '-clustered' if cluster_plot else ''
-    fname = (f'{parcellation}-{n_sec}sec-{freq_band}-band-'
-             f'{roi}-edges-attend_minus_ignore{clust}.pdf')
-    figsize = (8, 8) if use_edge_rois else (32, 32)
-    if cluster_plot:
-        cg = sns.clustermap(df, figsize=figsize)
-        fig = cg.fig
-    else:
-        fig, ax = plt.subplots(figsize=figsize)
-        sns.heatmap(df, square=True, ax=ax)
-    fig.savefig(os.path.join(plot_dir, fname))
-    del fig
+    if plot_matrix:
+        # sort rows/cols by hemisphere
+        df = np.abs(lambda_sq).to_pandas()
+        sorted_regions = (df.index.to_series()
+                            .str.split('-', expand=True)
+                            .sort_values([1, 0])
+                            .index.tolist())
+        df = df.loc[sorted_regions, sorted_regions]
+        if use_edge_rois:
+            ixs = np.nonzero(np.in1d(sorted_regions, roi_nodes)) * 2
+            df = df.iloc[ixs]
+        # plot relative contribution of each edge to the difference
+        clust = '-clustered' if cluster_plot else ''
+        fname = (f'{slug}-attend_minus_ignore{clust}.pdf')
+        figsize = (8, 8) if use_edge_rois else (32, 32)
+        if cluster_plot:
+            cg = sns.clustermap(df, figsize=figsize)
+            fig = cg.fig
+        else:
+            fig, ax = plt.subplots(figsize=figsize)
+            sns.heatmap(df, square=True, ax=ax)
+        fig.savefig(os.path.join(plot_dir, fname))
+        del fig
