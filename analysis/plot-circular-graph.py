@@ -8,6 +8,7 @@ license: MIT
 """
 
 import os
+from functools import reduce
 
 import numpy as np
 import xarray as xr
@@ -33,6 +34,9 @@ for _dir in (plot_dir,):
 
 # load other config values
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
+roi_edge_dict = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
+roi_edges = roi_edge_dict[parcellation]
+roi_nodes = sorted(set(reduce(tuple.__add__, roi_edges)))
 
 # load all labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
@@ -78,20 +82,28 @@ for use_edge_rois in (False, True):
     # colors follows original order, not node order   ↓↓↓↓↓↓↓↓↓↓↓
     node_colors = [label_dict[name].color for name in label_names]
 
+    # if aparc & using ROI, dim any colors that aren't in our ROI edge list
+    if parcellation == 'aparc':
+        for label in labels:
+            if label.name not in roi_nodes:
+                # make darker
+                label.color = tuple(np.array([0.1, 0.1, 0.1, 1]) * label.color)
+
     # plot
     n_lines = lambda_hat.size
     extreme = np.abs(lambda_sq).max().values
     vlims = dict(vmin=-extreme, vmax=extreme)
-    title = ('Relative contribution to network connectivity,\n'
-             'difference between conditions (attend minus ignore)')
     node_angles = mne.viz.circular_layout(
         label_names, node_order, start_pos=90,
         group_boundaries=[0, len(lh_names)])
     fig, ax = plot_connectivity_circle(
         lambda_sq.values, lambda_sq.coords['region_1'].values, n_lines=n_lines,
-        node_angles=node_angles, node_colors=node_colors, title=title,
+        node_angles=node_angles, node_colors=node_colors, title='',
         interactive=False, show=False, facecolor='w', textcolor='k',
         node_edgecolor='none', colormap='RdBu', colorbar_size=0.4,
         colorbar_pos=(1., 0.1), linewidth=1, **vlims)
     fig.set_size_inches(8, 8)
+    fig.suptitle('Relative contribution to network connectivity,\n'
+                 'difference between conditions (attend minus ignore)\n'
+                 f'{parcellation} parcellation')
     fig.savefig(os.path.join(plot_dir, f'{slug}-connectivity-circle.pdf'))
