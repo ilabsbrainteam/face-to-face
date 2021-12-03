@@ -61,8 +61,10 @@ for epoch_dict in epoch_strategies:
     # container for raw correlations, adjacencies, and graph laplacians
     _dtype = np.float64
     _min = np.finfo(_dtype).min
-    measures = ['envelope_correlation', 'adjacency', 'graph_laplacian',
-                'orthog_proj_mat', 'lambda_squared']
+    measures = ['envelope_correlation', 'adjacency',
+                'thresholded_weighted_adjacency',
+                'unthresholded_weighted_adjacency',
+                'graph_laplacian', 'orthog_proj_mat', 'lambda_squared']
     shape = (len(conditions), n_subj, len(measures), len(labels), len(labels))
     coords = dict(
         condition=conditions, subject=this_subjects, measure=measures,
@@ -86,24 +88,26 @@ for epoch_dict in epoch_strategies:
             conn_matrix = conn.get_data('dense').squeeze()
             conn_measures.loc[condition, subj,
                               'envelope_correlation'] = conn_matrix
-            # adjacency
+            # adjacency (thresholded)
             n_conn = len(conn.names) * (len(conn.names) - 1) / 2
             n_keep = np.ceil(n_conn * threshold_prop).astype(int)
             quantile = 1 - threshold_prop
             indices = np.tril_indices_from(conn_matrix, k=-1)
             threshold = np.quantile(conn_matrix[indices], quantile)
-            adjacency = (conn_matrix > 0).astype(int)
+            adjacency = (conn_matrix > threshold).astype(int)
             conn_measures.loc[condition, subj, 'adjacency'] = adjacency
+            # weighted "adjacency" (thresholded and unthresholded)
+            conn_measures.loc[
+                condition, subj, 'unthresholded_weighted_adjacency'
+                ] = np.where(conn_matrix > 0, conn_matrix, adjacency)
+            conn_measures.loc[
+                condition, subj, 'thresholded_weighted_adjacency'
+                ] = np.where(conn_matrix > threshold, conn_matrix, adjacency)
             # graph laplacian
-            graph = nx.Graph(
-                conn_measures.loc[condition, subj, 'adjacency'].to_pandas())
-            graph.clear_edges()
-            mask = np.logical_and(
-                adjacency.astype(bool),
-                np.tril(np.ones_like(adjacency), k=-1).astype(bool))
-            edges = [(list(graph)[ix], list(graph)[iy], w) for ix, iy, w in
-                     zip(*np.nonzero(mask), conn_matrix[mask])]
-            graph.add_weighted_edges_from(edges)
+            graph = nx.Graph(conn_measures
+                             .loc[condition, subj,
+                                  'unthresholded_weighted_adjacency']
+                             .to_pandas())
             assert is_connected(graph)  # assumption of method
             laplacian = laplacian_matrix(graph)
             conn_measures.loc[condition, subj,
