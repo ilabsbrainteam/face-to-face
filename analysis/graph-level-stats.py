@@ -113,14 +113,14 @@ for use_edge_rois in (False, True):
     #         Y_k = P_U (X_k)
     #     end
 
-    # calculate one-sample t-statistic
-    t_observed = n_subj * (mean_diff_halfvec @ sigma_inv @ mean_diff_halfvec)
+    # calculate test statistic
+    statistic = n_subj * (mean_diff_halfvec @ sigma_inv @ mean_diff_halfvec)
     degrees_of_freedom = comb(n_nodes, 2, exact=True)
-    pval = 1 - chi2.cdf(t_observed, df=degrees_of_freedom)
+    pval = 1 - chi2.cdf(statistic, df=degrees_of_freedom)
     # estimate contribution of each edge to the difference between conditions
     sqrt_inv_sigma = sqrtm(sigma_inv)
     lambda_hat = sqrt_inv_sigma @ mean_diff_halfvec
-    np.testing.assert_almost_equal(t_observed,
+    np.testing.assert_almost_equal(statistic,
                                    n_subj * np.sum(lambda_hat ** 2))
     lambda_sq = mean_over_subj.loc[:, 'lambda_squared'].mean(dim='condition')
     triu_indices = np.triu_indices_from(lambda_sq)
@@ -159,7 +159,7 @@ for use_edge_rois in (False, True):
         for _edge, _hat in zip(ranked_edges[::-1], ranked_lambda_hat[::-1])
     }
     output = dict(
-        t_observed=float(t_observed),
+        statistic=float(statistic),
         degrees_of_freedom=degrees_of_freedom,
         p_value=float(pval),
         lambda_hat=edge_contributions
