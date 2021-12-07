@@ -12,22 +12,18 @@ import os
 import numpy as np
 import networkx as nx
 from networkx.algorithms.centrality import betweenness_centrality
-# XXX from networkx.algorithms.smallworld import omega, sigma
-# XXX from networkx.algorithms.shortest_paths.generic import average_shortest_path_length  # noqa E501
-import pandas as pd
 from scipy.stats import ttest_rel
 import xarray as xr
 import mne
-import mne_connectivity
 
-from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
-                         get_skip_regexp)
+from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 
 # flags
 freq_band = 'theta'
 conditions = ['attend', 'ignore']
 parcellation = 'f2f_custom'  # 'aparc'
 threshold_prop = 0.15
+n_sec = 7  # epoch duration to use
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -35,6 +31,7 @@ data_root, subjects_dir, results_dir = load_paths()
 epo_dir = os.path.join(results_root_dir, 'epochs')
 param_dir = os.path.join('..', 'params')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
+xarray_dir = os.path.join(results_dir, 'xarrays')
 plot_dir = os.path.join(results_dir, 'figs', 'node-metrics')
 for _dir in (plot_dir,):
     os.makedirs(_dir, exist_ok=True)
@@ -46,6 +43,15 @@ epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 durations = [epoch_dict['length'] for epoch_dict in epoch_strategies]
 roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))[parcellation]
+
+# how many subjs are available at this epoch length?
+this_excludes = {subj for subj in excludes if n_sec in excludes[subj]}
+this_subjects = sorted(set(subjects) - this_excludes)
+n_subj = len(this_subjects)
+
+# load xarray
+fname = f'{parcellation}-{n_sec}sec-{freq_band}-band.nc'
+conn_measures = xr.open_dataarray(os.path.join(xarray_dir, fname))
 
 # load all labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
@@ -70,95 +76,83 @@ medial_wall_labels = {parc: (
 
 # containers
 Brain = mne.viz.get_brain_class()
+
+# container for node-level metrics
+node_metrics = ['degree',
+                'clustering_coefficient',
+                'betweenness_centrality']
+shape = (len(conditions), n_subj, len(node_metrics), len(labels))
+metrics = xr.DataArray(np.full(shape, fill_value=-1, dtype=float),
+                       coords=dict(condition=conditions,
+                                   subject=this_subjects,
+                                   metric=node_metrics,
+                                   region=label_names),
+                       name='node-level connectivity metrics')
+
+# loop over conditions & subjects
+for condition in conditions:
+    for subj in this_subjects:
+        # make graph
+        graph = nx.Graph(conn_measures
+                         .loc[condition, subj,
+                              'thresholded_weighted_adjacency']
+                         .to_pandas())
+        # node metrics
+        node_metrics = dict(
+            degree=graph.degree,
+            clustering_coefficient=nx.clustering(graph),
+            betweenness_centrality=betweenness_centrality(graph),
+        )
+        # fill in xarray
+        for metric, result in node_metrics.items():
+            for region, value in dict(result).items():
+                metrics.loc[condition, subj, metric, region] = value
+
+# make sure every cell got filled
+assert np.all(metrics >= 0)
+
+# subset to ROIs only
+roi_metrics = metrics.loc[..., np.array(roi_names)]
+
+# container
 results = dict()
+metric_arrays = dict(roi=roi_metrics, all=metrics)
 
-for epoch_dict in epoch_strategies:
-    n_sec = int(epoch_dict['length'])
-    results[n_sec] = dict()
-    # track which subjs are available at this epoch length
-    this_excludes = {subj for subj in excludes if n_sec in excludes[subj]}
-    this_subjects = sorted(set(subjects) - this_excludes)
-    n_subj = len(this_subjects)
-    # container for node-level metrics
-    node_metrics = ['degree',
-                    'clustering_coefficient',
-                    'betweenness_centrality']
-    shape = (len(conditions), n_subj, len(node_metrics), len(labels))
-    metrics = xr.DataArray(np.full(shape, fill_value=-1, dtype=float),
-                           coords=dict(condition=conditions,
-                                       subject=this_subjects,
-                                       metric=node_metrics,
-                                       region=label_names),
-                           name='node-level connectivity metrics')
-    # loop over conditions & subjects
-    for condition in conditions:
-        for subj in this_subjects:
-            # load connectivity
-            slug = get_slug(subj, freq_band, condition, parcellation)
-            conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
-            conn_fpath = os.path.join(conn_dir, conn_fname)
-            conn = mne_connectivity.read_connectivity(conn_fpath)
-            # strip "f2f-" off of the label names in the connectivity object
-            if parcellation == 'f2f_custom':
-                conn.attrs['node_names'] = np.array([name[4:]
-                                                     for name in conn.names])
-            # load envelope correlations and make graph
-            conn_matrix = conn.get_data('dense').squeeze()
-            df = pd.DataFrame(
-                conn_matrix, index=conn.names, columns=conn.names)
-            graph = nx.Graph(df)
-            # node metrics
-            clust_coef = nx.clustering(graph)
-            betw_cent = betweenness_centrality(graph)
-            degree = mne_connectivity.degree(conn, threshold_prop)
-            # fill in the xarray
-            for this_label, this_degree in zip(conn.names, degree):
-                this_metrics = np.array([
-                    this_degree, clust_coef[this_label], betw_cent[this_label]
-                ])
-                metrics.loc[condition, subj, :, this_label] = this_metrics
-    # make sure every cell got filled
-    assert np.all(metrics >= 0)
-
-    # node-level stats
-    stats = xr.DataArray(list(ttest_rel(*metrics, axis=0)),
+# node-level stats
+for scope, _xarray in metric_arrays.items():
+    results[scope] = dict()
+    sidak = 1 - (0.95) ** (1 / _xarray.shape[-1])  # Šidák correction
+    stats = xr.DataArray(list(ttest_rel(*_xarray, axis=0)),
                          coords=dict(stat=['tval', 'pval'],
-                         metric=list(node_metrics),
-                         region=label_names))
-    for metric in node_metrics:
-        results[n_sec][metric] = dict()
-        this_stats = stats.loc[:, metric]
-        signifs = this_stats.where(this_stats.loc['pval'] < 0.05, drop=True)
-        signif_regions = signifs.coords['region'].values.tolist()
-        attend_larger_than_ignore = this_stats.where(
-            np.logical_and(this_stats.loc['pval'] < 0.05,
-                           this_stats.loc['tval'] > 0), drop=True)
-        # Šidák correction
-        sidak = 1 - (0.95) ** (1 / len(roi_names))  # or label_names if no ROIs
-        signif_regions_sidak = this_stats.where(
-            this_stats.loc['pval'] < sidak, drop=True
-            ).coords['region'].values.tolist()
-        # store results
-        for name, result in dict(
-                stats=stats,
-                signifs=signifs,
-                signif_regions=signif_regions,
-                attend_larger_than_ignore=attend_larger_than_ignore,
-                signif_regions_sidak=signif_regions_sidak
-                ).items():
-            results[n_sec][metric][name] = result
+                                     metric=_xarray.coords['metric'],
+                                     region=_xarray.coords['region']))
+    for metric in _xarray.coords['metric'].values:
+        results[scope][metric] = dict()
+        for thresh_kind, thresh in dict(sidak=sidak, uncorrected=0.05).items():
+            results[scope][metric][thresh_kind] = dict()
+            this_stats = stats.loc['pval', metric]
+            signif = this_stats.where(this_stats < thresh, drop=True)
+            signif_regions = signif.coords['region'].values.tolist()
+            attend_larger_than_ignore = this_stats.where(
+                np.logical_and(this_stats < thresh, this_stats > 0), drop=True)
+            results[scope][metric][thresh_kind]['signif'] = signif
+            results[scope][metric][thresh_kind]['regions'] = signif_regions
+            results[scope][metric][thresh_kind]['attend>ignore'] = (
+                attend_larger_than_ignore)
 
-        for kind, _signif in dict(uncorrected=signif_regions,
-                                  corrected=signif_regions_sidak).items():
+for scope in results:
+    for metric in results[scope]:
+        for thresh_kind in results[scope][metric]:
+            regions = results[scope][metric][thresh_kind]['regions']
             # plot signifs
             brain = Brain(
                 surrogate, hemi='split', surf='inflated', size=(1200, 900),
                 cortex='low_contrast', views=['lateral', 'medial'],
                 background='white', subjects_dir=subjects_dir)
-            regexp = '|'.join(_signif)
+            regexp = '|'.join(regions)
             # avoid empty regexp loading all labels
             signif_labels = (
-                list() if not len(_signif) else
+                list() if not len(regions) else
                 mne.read_labels_from_annot(
                     surrogate, parcellation, regexp=regexp,
                     subjects_dir=subjects_dir)
@@ -178,8 +172,8 @@ for epoch_dict in epoch_strategies:
                 brain.add_text(
                     0.05, y, text=label.name.rsplit('-')[0], name=label.name,
                     row=row, col=col, color=label.color, font_size=12)
-            fname = (f'{parcellation}-{n_sec}sec-{metric}-{kind}-signif-'
-                     'labels.png')
+            fname = (f'{parcellation}-{n_sec}sec-{metric}-'
+                     f'{thresh_kind}-signif-{scope}-labels.png')
             brain.save_image(os.path.join(plot_dir, fname))
             brain.close()
             del brain
