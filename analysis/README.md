@@ -14,6 +14,9 @@
   binary matrix encoding edge ROIs.
 - run `graph-level-stats.py` to test whether the connectivity is different
   between "attend" and "ignore" conditions. Results go in `{results_dir}/stats`
-- run `plot-circular-graph.py` to show the relative contribution of each edge
-  to the difference in connectivity between conditions.
+- run `plot-circular-graph.py` and `plot-graph-level-stats.py` to show the
+  relative contribution of each edge to the difference in connectivity between
+  conditions.
 - run `node-level-stats.py` to compute and plot some node-level comparisons.
+- run `plot-node-level-stats.py` to show which regions change most between
+  conditions.

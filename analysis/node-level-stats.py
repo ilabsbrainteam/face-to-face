@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Compute and plot node-level metrics and stats.
+Compute node-level stats.
 
 authors: Daniel McCloy
 license: MIT
 """
 
 import os
+import yaml
 
 import numpy as np
 import networkx as nx
@@ -33,8 +34,9 @@ epo_dir = os.path.join(results_root_dir, 'epochs')
 param_dir = os.path.join('..', 'params')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
 xarray_dir = os.path.join(results_dir, 'xarrays')
+stats_dir = os.path.join(results_dir, 'stats')
 plot_dir = os.path.join(results_dir, 'figs', 'node-metrics')
-for _dir in (plot_dir,):
+for _dir in (stats_dir, plot_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 # load other config values
@@ -51,7 +53,7 @@ this_subjects = sorted(set(subjects) - this_excludes)
 n_subj = len(this_subjects)
 
 # load xarray
-fname = f'{parcellation}-{n_sec}sec-{freq_band}-band.nc'
+fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
 conn_measures = xr.open_dataarray(os.path.join(xarray_dir, fname))
 
 # load all labels
@@ -66,17 +68,6 @@ roi_names = list()
 for hemi, roi_name_dict in roi_dict.items():
     for roi_name in roi_name_dict:
         roi_names.append(f'{roi_name}-{hemi}')
-# for plotting
-medial_wall_labels = {parc: (
-        'cuneus', 'precuneus', 'paracentral', 'superiorfrontal',
-        'medialorbitofrontal', 'rostralanteriorcingulate',
-        'caudalanteriorcingulate', 'posteriorcingulate', 'isthmuscingulate',
-        'parahippocampal', 'entorhinal', 'fusiform', 'lingual',
-        'pericalcarine')
-    for parc in ('aparc', 'aparc_sub', 'f2f_custom')}
-
-# containers
-Brain = mne.viz.get_brain_class()
 
 # container for node-level metrics
 node_metrics = ['degree',
@@ -116,67 +107,32 @@ assert np.all(metrics >= 0)
 roi_metrics = metrics.loc[..., np.array(roi_names)]
 
 # container
-results = dict()
 metric_arrays = dict(roi=roi_metrics, all=metrics)
 
 # node-level stats
 for scope, _xarray in metric_arrays.items():
-    results[scope] = dict()
+    output = dict()
     sidak = 1 - (0.95) ** (1 / _xarray.shape[-1])  # Šidák correction
     stats = xr.DataArray(list(ttest_rel(*_xarray, axis=0)),
                          coords=dict(stat=['tval', 'pval'],
                                      metric=_xarray.coords['metric'],
                                      region=_xarray.coords['region']))
-    for metric in _xarray.coords['metric'].values:
-        results[scope][metric] = dict()
-        for thresh_kind, thresh in dict(sidak=sidak, uncorrected=0.05).items():
-            results[scope][metric][thresh_kind] = dict()
-            this_stats = stats.loc['pval', metric]
-            signif = this_stats.where(this_stats < thresh, drop=True)
-            signif_regions = signif.coords['region'].values.tolist()
-            attend_larger_than_ignore = this_stats.where(
-                np.logical_and(this_stats < thresh, this_stats > 0), drop=True)
-            results[scope][metric][thresh_kind]['signif'] = signif
-            results[scope][metric][thresh_kind]['regions'] = signif_regions
-            results[scope][metric][thresh_kind]['attend>ignore'] = (
-                attend_larger_than_ignore)
-
-if plot:
-    for scope in results:
-        for metric in results[scope]:
-            for thresh_kind in results[scope][metric]:
-                regions = results[scope][metric][thresh_kind]['regions']
-                # plot signifs
-                brain = Brain(
-                    surrogate, hemi='split', surf='inflated', size=(1200, 900),
-                    cortex='low_contrast', views=['lateral', 'medial'],
-                    background='white', subjects_dir=subjects_dir)
-                regexp = '|'.join(regions)
-                # avoid empty regexp loading all labels
-                signif_labels = (
-                    list() if not len(regions) else
-                    mne.read_labels_from_annot(
-                        surrogate, parcellation, regexp=regexp,
-                        subjects_dir=subjects_dir)
-                    )
-                # prevent text overlap
-                text_bookkeeping = {(row, col): list() for row in (0, 1)
-                                    for col in (0, 1)}
-                # draw labels and add label names
-                for label in signif_labels:
-                    brain.add_label(label, alpha=0.5)
-                    brain.add_label(label, borders=True)
-                    col = int(label.hemi == 'rh')
-                    row = int(label.name.rsplit('-')[0].rsplit('_')[0]
-                              in medial_wall_labels[parcellation])
-                    y = 0.02 + 0.06 * len(text_bookkeeping[(row, col)])
-                    text_bookkeeping[(row, col)].append(label.name)
-                    brain.add_text(
-                        0.05, y, text=label.name.rsplit('-')[0],
-                        name=label.name, row=row, col=col, color=label.color,
-                        font_size=12)
-                fname = (f'{parcellation}-{n_sec}sec-{metric}-'
-                         f'{thresh_kind}-signif-{scope}-labels.png')
-                brain.save_image(os.path.join(plot_dir, fname))
-                brain.close()
-                del brain
+    for thresh_kind, thresh in dict(sidak=sidak, uncorrected=0.05).items():
+        output[thresh_kind] = dict()
+        for metric in _xarray.coords['metric'].values:
+            output[thresh_kind][str(metric)] = dict()
+            out_stats = stats.loc[:, metric].where(
+                stats.loc['pval', metric] < thresh, drop=True)
+            for reg, tval, pval in zip(out_stats['region'].values.tolist(),
+                                       out_stats.loc['tval'].values.tolist(),
+                                       out_stats.loc['pval'].values.tolist()):
+                output[thresh_kind][str(metric)][reg] = dict(
+                    tval=float(tval), pval=float(pval))
+    # save xarray
+    slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{scope}-edges'
+    fname = f'{slug}-node-metrics.nc'
+    _xarray.to_netcdf(os.path.join(xarray_dir, fname))
+    # save stats
+    fname = f'{slug}-node-level-stats.yaml'
+    with open(os.path.join(stats_dir, fname), 'w') as f:
+        yaml.dump(output, f)

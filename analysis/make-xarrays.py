@@ -23,7 +23,7 @@ from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
 # flags
 freq_band = 'theta'
 conditions = ['attend', 'ignore']
-parcellation = 'f2f_custom'  # 'aparc'
+parcellation = 'f2f_custom'
 threshold_prop = 0.15
 
 # config paths
@@ -89,8 +89,6 @@ for epoch_dict in epoch_strategies:
             conn_measures.loc[condition, subj,
                               'envelope_correlation'] = conn_matrix
             # adjacency (thresholded)
-            n_conn = len(conn.names) * (len(conn.names) - 1) / 2
-            n_keep = np.ceil(n_conn * threshold_prop).astype(int)
             quantile = 1 - threshold_prop
             indices = np.tril_indices_from(conn_matrix, k=-1)
             threshold = np.quantile(conn_matrix[indices], quantile)
@@ -124,5 +122,5 @@ for epoch_dict in epoch_strategies:
         conn_measures.loc[:, :, 'orthog_proj_mat'] = 1
     # make sure every cell got filled
     assert np.all(conn_measures > _min)
-    fname = f'{parcellation}-{n_sec}sec-{freq_band}-band.nc'
+    fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
     conn_measures.to_netcdf(os.path.join(xarray_dir, fname))

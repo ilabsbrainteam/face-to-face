@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Compute and plot graph-level metrics and stats.
+Compute graph-level stats.
 
 authors: Daniel McCloy
 license: MIT
@@ -12,11 +12,9 @@ import os
 import yaml
 
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.stats import chi2
 from scipy.special import comb
 from scipy.linalg import sqrtm
-import seaborn as sns
 import xarray as xr
 from rpy2.robjects import numpy2ri
 from rpy2.robjects.packages import importr
@@ -33,13 +31,8 @@ def get_halfvec(array, k=0):
 
 # flags
 freq_band = 'theta'
-conditions = ['attend', 'ignore']
 parcellation = 'f2f_custom'  # 'aparc'
-threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
-sns.set(font_scale=0.8)
-plot_matrix = False
-cluster_plot = False
 
 # enable interface to R
 corpcor = importr('corpcor')
@@ -70,7 +63,7 @@ this_subjects = sorted(set(subjects) - this_excludes)
 n_subj = len(this_subjects)
 
 # load xarray
-fname = f'{parcellation}-{n_sec}sec-{freq_band}-band.nc'
+fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
 conn_measures = xr.open_dataarray(os.path.join(xarray_dir, fname))
 
 for use_edge_rois in (False, True):
@@ -166,7 +159,7 @@ for use_edge_rois in (False, True):
     )
     roi = 'roi' if use_edge_rois else 'all'
     slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
-    fname = f'{slug}.yaml'
+    fname = f'{slug}-graph-level-stats.yaml'
     with open(os.path.join(stats_dir, fname), 'w') as f:
         yaml.dump(output, f)
     # save lambda hat vector and lambda squared matrix
@@ -180,27 +173,3 @@ for use_edge_rois in (False, True):
     lambda_hat_xarray.to_netcdf(os.path.join(xarray_dir, fname))
     fname = f'{slug}-lambda-sq.nc'
     lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))
-
-    if plot_matrix:
-        # sort rows/cols by hemisphere
-        df = np.abs(lambda_sq).to_pandas()
-        sorted_regions = (df.index.to_series()
-                            .str.split('-', expand=True)
-                            .sort_values([1, 0])
-                            .index.tolist())
-        df = df.loc[sorted_regions, sorted_regions]
-        if use_edge_rois:
-            ixs = np.nonzero(np.in1d(sorted_regions, roi_nodes)) * 2
-            df = df.iloc[ixs]
-        # plot relative contribution of each edge to the difference
-        clust = '-clustered' if cluster_plot else ''
-        fname = (f'{slug}-attend_minus_ignore{clust}.pdf')
-        figsize = (8, 8) if use_edge_rois else (32, 32)
-        if cluster_plot:
-            cg = sns.clustermap(df, figsize=figsize)
-            fig = cg.fig
-        else:
-            fig, ax = plt.subplots(figsize=figsize)
-            sns.heatmap(df, square=True, ax=ax)
-        fig.savefig(os.path.join(plot_dir, fname))
-        del fig
