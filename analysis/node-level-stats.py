@@ -24,6 +24,7 @@ conditions = ['attend', 'ignore']
 parcellation = 'f2f_custom'  # 'aparc'
 threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
+plot = False
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -140,40 +141,42 @@ for scope, _xarray in metric_arrays.items():
             results[scope][metric][thresh_kind]['attend>ignore'] = (
                 attend_larger_than_ignore)
 
-for scope in results:
-    for metric in results[scope]:
-        for thresh_kind in results[scope][metric]:
-            regions = results[scope][metric][thresh_kind]['regions']
-            # plot signifs
-            brain = Brain(
-                surrogate, hemi='split', surf='inflated', size=(1200, 900),
-                cortex='low_contrast', views=['lateral', 'medial'],
-                background='white', subjects_dir=subjects_dir)
-            regexp = '|'.join(regions)
-            # avoid empty regexp loading all labels
-            signif_labels = (
-                list() if not len(regions) else
-                mne.read_labels_from_annot(
-                    surrogate, parcellation, regexp=regexp,
-                    subjects_dir=subjects_dir)
-                )
-            # prevent text overlap
-            text_bookkeeping = {(row, col): list() for row in (0, 1)
-                                for col in (0, 1)}
-            # draw labels and add label names
-            for label in signif_labels:
-                brain.add_label(label, alpha=0.5)
-                brain.add_label(label, borders=True)
-                col = int(label.hemi == 'rh')
-                row = int(label.name.rsplit('-')[0].rsplit('_')[0]
-                          in medial_wall_labels[parcellation])
-                y = 0.02 + 0.06 * len(text_bookkeeping[(row, col)])
-                text_bookkeeping[(row, col)].append(label.name)
-                brain.add_text(
-                    0.05, y, text=label.name.rsplit('-')[0], name=label.name,
-                    row=row, col=col, color=label.color, font_size=12)
-            fname = (f'{parcellation}-{n_sec}sec-{metric}-'
-                     f'{thresh_kind}-signif-{scope}-labels.png')
-            brain.save_image(os.path.join(plot_dir, fname))
-            brain.close()
-            del brain
+if plot:
+    for scope in results:
+        for metric in results[scope]:
+            for thresh_kind in results[scope][metric]:
+                regions = results[scope][metric][thresh_kind]['regions']
+                # plot signifs
+                brain = Brain(
+                    surrogate, hemi='split', surf='inflated', size=(1200, 900),
+                    cortex='low_contrast', views=['lateral', 'medial'],
+                    background='white', subjects_dir=subjects_dir)
+                regexp = '|'.join(regions)
+                # avoid empty regexp loading all labels
+                signif_labels = (
+                    list() if not len(regions) else
+                    mne.read_labels_from_annot(
+                        surrogate, parcellation, regexp=regexp,
+                        subjects_dir=subjects_dir)
+                    )
+                # prevent text overlap
+                text_bookkeeping = {(row, col): list() for row in (0, 1)
+                                    for col in (0, 1)}
+                # draw labels and add label names
+                for label in signif_labels:
+                    brain.add_label(label, alpha=0.5)
+                    brain.add_label(label, borders=True)
+                    col = int(label.hemi == 'rh')
+                    row = int(label.name.rsplit('-')[0].rsplit('_')[0]
+                              in medial_wall_labels[parcellation])
+                    y = 0.02 + 0.06 * len(text_bookkeeping[(row, col)])
+                    text_bookkeeping[(row, col)].append(label.name)
+                    brain.add_text(
+                        0.05, y, text=label.name.rsplit('-')[0],
+                        name=label.name, row=row, col=col, color=label.color,
+                        font_size=12)
+                fname = (f'{parcellation}-{n_sec}sec-{metric}-'
+                         f'{thresh_kind}-signif-{scope}-labels.png')
+                brain.save_image(os.path.join(plot_dir, fname))
+                brain.close()
+                del brain
