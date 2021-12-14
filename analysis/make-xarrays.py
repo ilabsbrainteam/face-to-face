@@ -61,17 +61,17 @@ for epoch_dict in epoch_strategies:
     # container for raw correlations, adjacencies, and graph laplacians
     _dtype = np.float64
     _min = np.finfo(_dtype).min
-    measures = ['envelope_correlation', 'adjacency',
-                'thresholded_weighted_adjacency',
-                'unthresholded_weighted_adjacency',
-                'graph_laplacian', 'orthog_proj_mat', 'lambda_squared']
-    shape = (len(conditions), n_subj, len(measures), len(labels), len(labels))
+    metrics = ['envelope_correlation', 'adjacency',
+               'thresholded_weighted_adjacency',
+               'unthresholded_weighted_adjacency',
+               'graph_laplacian', 'orthog_proj_mat', 'lambda_squared']
+    shape = (len(conditions), n_subj, len(metrics), len(labels), len(labels))
     coords = dict(
-        condition=conditions, subject=this_subjects, measure=measures,
+        condition=conditions, subject=this_subjects, metric=metrics,
         region_1=label_names, region_2=label_names)
-    conn_measures = xr.DataArray(np.full(shape, fill_value=_min, dtype=_dtype),
+    graph_metrics = xr.DataArray(np.full(shape, fill_value=_min, dtype=_dtype),
                                  coords=coords,
-                                 name='graph-level connectivity measures')
+                                 name='graph-level connectivity metrics')
     # loop over conditions & subjects
     for condition in conditions:
         for subj in this_subjects:
@@ -86,41 +86,41 @@ for epoch_dict in epoch_strategies:
                                                      for name in conn.names])
             # envelope correlations
             conn_matrix = conn.get_data('dense').squeeze()
-            conn_measures.loc[condition, subj,
+            graph_metrics.loc[condition, subj,
                               'envelope_correlation'] = conn_matrix
             # adjacency (thresholded)
             quantile = 1 - threshold_prop
             indices = np.tril_indices_from(conn_matrix, k=-1)
             threshold = np.quantile(conn_matrix[indices], quantile)
             adjacency = (conn_matrix > threshold).astype(int)
-            conn_measures.loc[condition, subj, 'adjacency'] = adjacency
+            graph_metrics.loc[condition, subj, 'adjacency'] = adjacency
             # weighted "adjacency" (thresholded and unthresholded)
-            conn_measures.loc[
+            graph_metrics.loc[
                 condition, subj, 'unthresholded_weighted_adjacency'
                 ] = np.where(conn_matrix > 0, conn_matrix, adjacency)
-            conn_measures.loc[
+            graph_metrics.loc[
                 condition, subj, 'thresholded_weighted_adjacency'
                 ] = np.where(conn_matrix > threshold, conn_matrix, adjacency)
             # graph laplacian
-            graph = nx.Graph(conn_measures
+            graph = nx.Graph(graph_metrics
                              .loc[condition, subj,
                                   'unthresholded_weighted_adjacency']
                              .to_pandas())
             assert is_connected(graph)  # assumption of method
             laplacian = laplacian_matrix(graph)
-            conn_measures.loc[condition, subj,
+            graph_metrics.loc[condition, subj,
                               'graph_laplacian'] = laplacian.toarray()
     # placeholder, used later only in aggregate (not for each subj)
-    conn_measures.loc[:, :, 'lambda_squared'] = 0
+    graph_metrics.loc[:, :, 'lambda_squared'] = 0
     # prep for restricting to specific edge ROIs
     if parcellation != 'aparc_sub':
-        conn_measures.loc[:, :, 'orthog_proj_mat'] = 0
+        graph_metrics.loc[:, :, 'orthog_proj_mat'] = 0
         for _node1, _node2 in roi_edges:
-            conn_measures.loc[:, :, 'orthog_proj_mat', _node1, _node2] = 1
-            conn_measures.loc[:, :, 'orthog_proj_mat', _node2, _node1] = 1
+            graph_metrics.loc[:, :, 'orthog_proj_mat', _node1, _node2] = 1
+            graph_metrics.loc[:, :, 'orthog_proj_mat', _node2, _node1] = 1
     else:
-        conn_measures.loc[:, :, 'orthog_proj_mat'] = 1
+        graph_metrics.loc[:, :, 'orthog_proj_mat'] = 1
     # make sure every cell got filled
-    assert np.all(conn_measures > _min)
+    assert np.all(graph_metrics > _min)
     fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
-    conn_measures.to_netcdf(os.path.join(xarray_dir, fname))
+    graph_metrics.to_netcdf(os.path.join(xarray_dir, fname))

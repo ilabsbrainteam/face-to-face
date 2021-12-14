@@ -55,7 +55,7 @@ n_subj = len(this_subjects)
 # load xarray
 slug = f'{parcellation}-{n_sec}sec-{freq_band}-band'
 fname = f'{slug}-graph-metrics.nc'
-conn_measures = xr.load_dataarray(os.path.join(xarray_dir, fname))
+conn_metrics = xr.load_dataarray(os.path.join(xarray_dir, fname))
 
 # load all labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
@@ -86,7 +86,7 @@ metrics = xr.DataArray(np.full(shape, fill_value=-1, dtype=float),
 for condition in conditions:
     for subj in this_subjects:
         # make graph
-        graph = nx.Graph(conn_measures
+        graph = nx.Graph(conn_metrics
                          .loc[condition, subj,
                               'thresholded_weighted_adjacency']
                          .to_pandas())

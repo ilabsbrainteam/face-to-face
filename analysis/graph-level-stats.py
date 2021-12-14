@@ -64,13 +64,13 @@ n_subj = len(this_subjects)
 
 # load xarray
 fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
-conn_measures = xr.load_dataarray(os.path.join(xarray_dir, fname))
+graph_metrics = xr.load_dataarray(os.path.join(xarray_dir, fname))
 
 for use_edge_rois in (False, True):
     n_nodes = (len(roi_nodes) if use_edge_rois else
-               conn_measures.coords['region_1'].size)
+               graph_metrics.coords['region_1'].size)
     # compute mean laplacians
-    mean_over_subj = conn_measures.mean(dim='subject')
+    mean_over_subj = graph_metrics.mean(dim='subject')
     mean_laplacians = mean_over_subj.loc[:, 'graph_laplacian']
     # absence of off-diagonal structural zeros is an assumption of the method
     for _ml in mean_laplacians:
@@ -79,7 +79,7 @@ for use_edge_rois in (False, True):
     # reduce matrices to half-vectorized form (removes redundant entries)
     mean_halfvecs = np.array([get_halfvec(_ml) for _ml in mean_laplacians])
     mean_diff_halfvec = np.diff(mean_halfvecs, axis=0).squeeze()
-    subj_laplacians = conn_measures.loc[:, :, 'graph_laplacian']
+    subj_laplacians = graph_metrics.loc[:, :, 'graph_laplacian']
     subj_diffs = np.diff(subj_laplacians, axis=0).squeeze()
     subj_diff_halfvecs = np.array([get_halfvec(arr) for arr in subj_diffs])
     # restrict halfvecs to just the ROI edges (if desired)
