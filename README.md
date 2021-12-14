@@ -7,4 +7,4 @@
    landmarks. Also generates the `-trans.fif` file
 3. run `preprocessing/run_mnefun.py`
 4. run `preprocessing/morph_labels.py`
-5. run `analysis/whatever.py`
+5. run `analysis/*.py` (see `analysis/README.md`)
