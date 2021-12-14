@@ -53,8 +53,9 @@ this_subjects = sorted(set(subjects) - this_excludes)
 n_subj = len(this_subjects)
 
 # load xarray
-fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
-conn_measures = xr.open_dataarray(os.path.join(xarray_dir, fname))
+slug = f'{parcellation}-{n_sec}sec-{freq_band}-band'
+fname = f'{slug}-graph-metrics.nc'
+conn_measures = xr.load_dataarray(os.path.join(xarray_dir, fname))
 
 # load all labels
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml')
@@ -129,10 +130,9 @@ for scope, _xarray in metric_arrays.items():
                 output[thresh_kind][str(metric)][reg] = dict(
                     tval=float(tval), pval=float(pval))
     # save xarray
-    slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{scope}-edges'
-    fname = f'{slug}-node-metrics.nc'
+    fname = f'{slug}-{scope}-edges-node-metrics.nc'
     _xarray.to_netcdf(os.path.join(xarray_dir, fname))
     # save stats
-    fname = f'{slug}-node-level-stats.yaml'
+    fname = f'{slug}-{scope}-edges-node-level-stats.yaml'
     with open(os.path.join(stats_dir, fname), 'w') as f:
         yaml.dump(output, f)

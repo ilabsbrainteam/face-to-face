@@ -51,9 +51,9 @@ for use_edge_rois in (False, True):
     # load xarrays
     slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
     fname = f'{slug}-lambda-hat.nc'
-    lambda_hat = xr.open_dataarray(os.path.join(xarray_dir, fname))
+    lambda_hat = xr.load_dataarray(os.path.join(xarray_dir, fname))
     fname = f'{slug}-lambda-sq.nc'
-    lambda_sq = xr.open_dataarray(os.path.join(xarray_dir, fname))
+    lambda_sq = xr.load_dataarray(os.path.join(xarray_dir, fname))
 
     # arrange labels in sensible order (by y coordinate of label centroid)
     label_names = lambda_sq.coords['region_1'].values.tolist()

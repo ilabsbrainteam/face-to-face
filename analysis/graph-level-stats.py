@@ -64,7 +64,7 @@ n_subj = len(this_subjects)
 
 # load xarray
 fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
-conn_measures = xr.open_dataarray(os.path.join(xarray_dir, fname))
+conn_measures = xr.load_dataarray(os.path.join(xarray_dir, fname))
 
 for use_edge_rois in (False, True):
     n_nodes = (len(roi_nodes) if use_edge_rois else
