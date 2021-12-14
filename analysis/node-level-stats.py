@@ -23,9 +23,7 @@ from f2f_helpers import load_paths, load_subjects, load_params, get_skip_regexp
 freq_band = 'theta'
 conditions = ['attend', 'ignore']
 parcellation = 'f2f_custom'  # 'aparc'
-threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
-plot = False
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -35,8 +33,7 @@ param_dir = os.path.join('..', 'params')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
 xarray_dir = os.path.join(results_dir, 'xarrays')
 stats_dir = os.path.join(results_dir, 'stats')
-plot_dir = os.path.join(results_dir, 'figs', 'node-metrics')
-for _dir in (stats_dir, plot_dir,):
+for _dir in (stats_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 # load other config values
@@ -71,14 +68,14 @@ for hemi, roi_name_dict in roi_dict.items():
         roi_names.append(f'{roi_name}-{hemi}')
 
 # container for node-level metrics
-node_metrics = ['degree',
-                'clustering_coefficient',
-                'betweenness_centrality']
+node_metrics = dict(degree=None,
+                    clustering_coefficient=None,
+                    betweenness_centrality=None)
 shape = (len(conditions), n_subj, len(node_metrics), len(labels))
 metrics = xr.DataArray(np.full(shape, fill_value=-1, dtype=float),
                        coords=dict(condition=conditions,
                                    subject=this_subjects,
-                                   metric=node_metrics,
+                                   metric=list(node_metrics),
                                    region=label_names),
                        name='node-level connectivity metrics')
 
@@ -91,7 +88,7 @@ for condition in conditions:
                               'thresholded_weighted_adjacency']
                          .to_pandas())
         # node metrics
-        node_metrics = dict(
+        node_metrics.update(
             degree=graph.degree,
             clustering_coefficient=nx.clustering(graph),
             betweenness_centrality=betweenness_centrality(graph),
