@@ -55,7 +55,8 @@ node_metrics = xr.load_dataarray(os.path.join(xarray_dir, node_fname))
 roi_degree = node_metrics.loc[:, :, 'degree', roi_names]
 delta_roi_degree = roi_degree.loc['attend'] - roi_degree.loc['ignore']
 node_predictors = delta_roi_degree.to_pandas()
-beh_predictors = beh.set_index('subj').filter(like='vocab_', axis='columns')
+beh_predictors = (beh.set_index('subj')
+                     .filter(regex=r'^(vocab|secondary)', axis='columns'))
 
 all_predictors = node_predictors.join(beh_predictors)
 
@@ -68,8 +69,11 @@ corrmat = (full_corrmat
 
 fig, ax = plt.subplots()
 sns.heatmap(corrmat, square=False, ax=ax, cmap='RdBu', vmin=-1, vmax=1)
+ax.set_xticklabels(
+    ['\n'.join(lab.split('_')) for lab in beh_predictors.columns],
+    rotation=0)
 fig.suptitle('Pearson correlations: Δ Degree (attend−ignore) vs vocab score',
              weight='bold', size='larger')
-fig.set_size_inches(7, 5)
-fig.subplots_adjust(left=0.2, right=0.95)
+fig.set_size_inches(7, 7)
+fig.subplots_adjust(left=0.2, right=0.95, bottom=0.15)
 fig.savefig(os.path.join(plot_dir, 'degree-vs-vocab.pdf'))
