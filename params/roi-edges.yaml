@@ -1,4 +1,4 @@
-f2f_custom:
+hickok_corbetta:
     # LH dorsal stream
     - !!python/tuple [phonetics-lh, sensorimotor-lh]
     - !!python/tuple [phonology-lh, sensorimotor-lh]

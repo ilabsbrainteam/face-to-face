@@ -23,7 +23,7 @@ from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
 # flags
 freq_band = 'theta'
 conditions = ['attend', 'ignore']
-parcellation = 'f2f_custom'
+parcellation = 'hickok_corbetta'
 threshold_prop = 0.15
 
 # config paths
@@ -81,7 +81,7 @@ for epoch_dict in epoch_strategies:
             conn_fpath = os.path.join(conn_dir, conn_fname)
             conn = mne_connectivity.read_connectivity(conn_fpath)
             # strip "f2f-" off of the label names in the connectivity object
-            if parcellation == 'f2f_custom':
+            if parcellation == 'hickok_corbetta':
                 conn.attrs['node_names'] = np.array([name[4:]
                                                      for name in conn.names])
             # envelope correlations

@@ -31,7 +31,7 @@ def get_halfvec(array, k=0):
 
 # flags
 freq_band = 'theta'
-parcellation = 'f2f_custom'  # 'aparc'
+parcellation = 'hickok_corbetta'  # 'aparc'
 n_sec = 7  # epoch duration to use
 
 # enable interface to R

@@ -19,7 +19,7 @@ from f2f_helpers import load_paths, load_params
 
 # flags
 freq_band = 'theta'
-parcellation = 'f2f_custom'  # 'aparc'
+parcellation = 'hickok_corbetta'  # 'aparc'
 n_sec = 7  # epoch duration to use
 sns.set(font_scale=0.8)
 cluster_plot = False

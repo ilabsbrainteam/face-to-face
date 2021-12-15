@@ -21,7 +21,7 @@ aparc:
         - rostralmiddlefrontal
         - inferiorparietal
         - superiorparietal
-f2f_custom:
+hickok_corbetta:
     lh:
         phonetics:  # dorsal STG (bilateral)
             - superiortemporal_1

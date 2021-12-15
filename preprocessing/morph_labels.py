@@ -11,7 +11,7 @@ import os
 import mne
 from f2f_helpers import load_paths, load_params
 
-# "f2f_custom" already exists for surrogate
+# "hickok_corbetta" already exists for surrogate
 parcellations = ('aparc', 'aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
 
 # config paths

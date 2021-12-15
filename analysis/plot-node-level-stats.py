@@ -13,7 +13,7 @@ from f2f_helpers import load_paths, load_params, yamload
 
 # flags
 freq_band = 'theta'
-parcellation = 'f2f_custom'
+parcellation = 'hickok_corbetta'
 n_sec = 7  # epoch duration to use
 scopes = ('roi', 'all')
 
@@ -36,7 +36,7 @@ medial_wall_labels = {parc: (
         'caudalanteriorcingulate', 'posteriorcingulate', 'isthmuscingulate',
         'parahippocampal', 'entorhinal', 'fusiform', 'lingual',
         'pericalcarine')
-    for parc in ('aparc', 'aparc_sub', 'f2f_custom')}
+    for parc in ('aparc', 'aparc_sub', 'hickok_corbetta')}
 
 # containers
 Brain = mne.viz.get_brain_class()

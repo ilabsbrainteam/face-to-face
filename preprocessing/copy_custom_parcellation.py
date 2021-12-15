@@ -21,7 +21,7 @@ surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 
 # load the annotation from surrogate
 labels = mne.read_labels_from_annot(
-    surrogate, 'f2f_custom', subjects_dir=subjects_dir)
+    surrogate, 'hickok_corbetta', subjects_dir=subjects_dir)
 
 # copy to each subj
 for subj in subjects:
@@ -33,7 +33,7 @@ for subj in subjects:
     for label in new_labels:
         label.name = f'f2f-{label.name}'
     mne.write_labels_to_annot(
-        labels=new_labels, subject=subj, parc='f2f_custom',
+        labels=new_labels, subject=subj, parc='hickok_corbetta',
         subjects_dir=subjects_dir, overwrite=True)
     # save labels
     for label in new_labels:

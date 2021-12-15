@@ -77,7 +77,7 @@ for subj in subjects:
             for parcellation, skips in labels_to_skip.items():
                 # load labels
                 regexp = get_skip_regexp(skips)
-                if parcellation == 'f2f_custom':
+                if parcellation == 'hickok_corbetta':
                     regexp = f'f2f-{regexp}'
                 labels = mne.read_labels_from_annot(
                     subj, parcellation, regexp=regexp,

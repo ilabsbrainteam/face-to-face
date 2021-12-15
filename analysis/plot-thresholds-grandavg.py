@@ -60,7 +60,7 @@ for epoch_dict in epoch_strategies:
 
 for parcellation, skips in labels_to_skip.items():
     regexp = get_skip_regexp(skips)
-    if parcellation == 'f2f_custom':
+    if parcellation == 'hickok_corbetta':
         regexp = f'f2f-{regexp}'
     for threshold_prop in threshold_props:
         grandavg_stc = dict()

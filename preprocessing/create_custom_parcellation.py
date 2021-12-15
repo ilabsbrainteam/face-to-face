@@ -62,7 +62,7 @@ labels = mne.read_labels_from_annot(
 label_dict = {label.name: label for label in labels}
 
 # create the ROI labels
-roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))['f2f_custom']
+roi_dict = load_params(os.path.join(param_dir, 'rois.yaml'))['hickok_corbetta']
 roi_labels = list()
 used_labels = dict()
 for hemi, rois in roi_dict.items():
@@ -100,5 +100,6 @@ for hemi in ('lh', 'rh'):
 
 # combine ROIs with remainders, and save
 all_labels = roi_labels + remainder_labels
-mne.write_labels_to_annot(all_labels, subject=surrogate, parc='f2f_custom',
-                          subjects_dir=subjects_dir, overwrite=True)
+mne.write_labels_to_annot(
+    all_labels, subject=surrogate, parc='hickok_corbetta',
+    subjects_dir=subjects_dir, overwrite=True)

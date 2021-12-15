@@ -20,7 +20,7 @@ from f2f_helpers import load_paths, load_params, get_skip_regexp
 # flags
 freq_band = 'theta'
 conditions = ['attend', 'ignore']
-parcellation = 'f2f_custom'  # 'aparc'
+parcellation = 'hickok_corbetta'  # 'aparc'
 threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
 

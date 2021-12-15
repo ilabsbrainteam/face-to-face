@@ -19,7 +19,7 @@ from f2f_helpers import load_paths, load_params
 
 # flags
 freq_band = 'theta'
-parcellation = 'f2f_custom'
+parcellation = 'hickok_corbetta'
 n_sec = 7  # epoch duration to use
 
 # config paths
