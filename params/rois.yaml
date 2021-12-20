@@ -1,26 +1,46 @@
-aparc:
+f2f_custom:
     lh:
-        - superiortemporal
-        - middletemporal
-        - inferiortemporal
-        - bankssts
-        - supramarginal
-        - parsopercularis
-        - precentral
-        - insula
-        - caudalmiddlefrontal
-        - rostralmiddlefrontal
-        - inferiorparietal
-        - superiorparietal
+        superiortemporal:
+            - superiortemporal_*
+        inferiorfrontal:
+            - parsorbitalis_*
+            - parsopercularis_*
+            - parstriangularis_*
+        inferiorparietal:
+            - inferiorparietal_*
     rh:
-        - superiortemporal
-        - middletemporal
-        - inferiortemporal
-        - bankssts
-        - supramarginal
-        - rostralmiddlefrontal
-        - inferiorparietal
-        - superiorparietal
+        superiortemporal:
+            - superiortemporal_*
+        inferiorfrontal:
+            - parsorbitalis_*
+            - parsopercularis_*
+            - parstriangularis_*
+        inferiorparietal:
+            - inferiorparietal_*
+friederici:
+    lh:
+        primary_auditory:
+            - transversetemporal_*
+        phonological_wordform:
+            - bankssts_*
+        morphosyntax_and_lexicon:  # this is Friederici's stages 2, 3, 4, 5
+            - superiortemporal_7
+            - superiortemporal_8
+            - superiortemporal_9
+            - superiortemporal_10
+            - superiortemporal_11
+
+    rh:
+        primary_auditory:
+            - transversetemporal_*
+        phonological_wordform:
+            - bankssts_*
+        prosody:
+            - superiortemporal_1
+            - superiortemporal_2
+            - superiortemporal_4
+            - superiortemporal_5
+
 hickok_corbetta:
     lh:
         phonetics:  # dorsal STG (bilateral)
@@ -30,9 +50,7 @@ hickok_corbetta:
             - superiortemporal_4
             - superiortemporal_5
         phonology:  # mid-post STS (bilateral)
-            - bankssts_1
-            - bankssts_2
-            - bankssts_3
+            - bankssts_*
         lexical: # posterior MTG & ITS (bilateral)
             - middletemporal_1
             - middletemporal_2
@@ -48,10 +66,7 @@ hickok_corbetta:
             - supramarginal_5
             - supramarginal_6
         articulatory:  # posterior IFG, anterior insula (left)
-            - parsopercularis_1
-            - parsopercularis_2
-            - parsopercularis_3
-            - parsopercularis_4
+            - parsopercularis_*
             - precentral_12
             - precentral_13
             - precentral_14
@@ -61,12 +76,7 @@ hickok_corbetta:
             - insula_6
             - insula_7
         premotor:
-            - caudalmiddlefrontal_1
-            - caudalmiddlefrontal_2
-            - caudalmiddlefrontal_3
-            - caudalmiddlefrontal_4
-            - caudalmiddlefrontal_5
-            - caudalmiddlefrontal_6
+            - caudalmiddlefrontal_*
         combinatorial:  # anterior MTG & ITS (left?)
             - middletemporal_6
             - middletemporal_7
@@ -105,9 +115,7 @@ hickok_corbetta:
             - superiortemporal_4
             - superiortemporal_5
         phonology:  # mid-post STS (bilateral)
-            - bankssts_1
-            - bankssts_2
-            - bankssts_3
+            - bankssts_*
         lexical: # posterior MTG & ITS (bilateral)
             - middletemporal_1
             - middletemporal_2
@@ -144,12 +152,5 @@ hickok_corbetta:
             - inferiorparietal_10
             - inferiorparietal_11
         VFC:
-            - caudalmiddlefrontal_1
-            - caudalmiddlefrontal_2
-            - caudalmiddlefrontal_3
-            - caudalmiddlefrontal_4
-            - caudalmiddlefrontal_5
-            - parsopercularis_1
-            - parsopercularis_2
-            - parsopercularis_3
-            - parsopercularis_4
+            - caudalmiddlefrontal_*
+            - parsopercularis_*
