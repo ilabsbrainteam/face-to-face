@@ -1,4 +1,27 @@
-hickok_corbetta:
+f2f:
+    # left hemisphere
+    - !!python/tuple [superiortemporal-lh, inferiorfrontal-lh]
+    - !!python/tuple [superiortemporal-lh, inferiorparietal-lh]
+    - !!python/tuple [inferiorfrontal-lh, inferiorparietal-lh]
+    # right hemisphere
+    - !!python/tuple [superiortemporal-rh, inferiorfrontal-rh]
+    - !!python/tuple [superiortemporal-rh, inferiorparietal-rh]
+    - !!python/tuple [inferiorfrontal-rh, inferiorparietal-rh]
+    # cross-hemisphere links
+    - !!python/tuple [superiortemporal-lh, superiortemporal-rh]
+    - !!python/tuple [inferiorfrontal-lh, inferiorfrontal-rh]
+    - !!python/tuple [inferiorparietal-lh, inferiorparietal-rh]
+friederici:
+    # left hemisphere
+    - !!python/tuple [primary_auditory-lh, phonological_wordform-lh]
+    - !!python/tuple [phonological_wordform-lh, morphosyntax_and_lexicon-lh]
+    # right hemisphere
+    - !!python/tuple [primary_auditory-rh, phonological_wordform-rh]
+    - !!python/tuple [phonological_wordform-rh, prosody-rh]
+    # cross-hemisphere links
+    - !!python/tuple [primary_auditory-lh, primary_auditory-rh]
+    - !!python/tuple [phonological_wordform-lh, phonological_wordform-rh]
+hickok:
     # LH dorsal stream
     - !!python/tuple [phonetics-lh, sensorimotor-lh]
     - !!python/tuple [phonology-lh, sensorimotor-lh]
@@ -14,10 +37,11 @@ hickok_corbetta:
     # dorsal/ventral convergence; bilateral link
     - !!python/tuple [combinatorial-lh, articulatory-lh]
     - !!python/tuple [lexical-lh, lexical-rh]
+corbetta:
     # LH attention
     - !!python/tuple [FEF-lh, IPS-lh]
     - !!python/tuple [IPS-lh, TPJ-lh]
-    - !!python/tuple [TPJ-lh, articulatory-lh]
+    - !!python/tuple [TPJ-lh, VFC-lh]
     # RH attention
     - !!python/tuple [FEF-rh, IPS-rh]
     - !!python/tuple [IPS-rh, TPJ-rh]
