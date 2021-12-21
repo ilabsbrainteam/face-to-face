@@ -1,4 +1,4 @@
-f2f_custom:
+f2f:
     lh:
         superiortemporal:
             - superiortemporal_*
@@ -41,7 +41,7 @@ friederici:
             - superiortemporal_4
             - superiortemporal_5
 
-hickok_corbetta:
+hickok:
     lh:
         phonetics:  # dorsal STG (bilateral)
             - superiortemporal_1
@@ -82,6 +82,23 @@ hickok_corbetta:
             - middletemporal_7
             - inferiortemporal_1
             - inferiortemporal_2
+    rh:
+        phonetics:  # dorsal STG (bilateral)
+            - superiortemporal_1
+            - superiortemporal_2
+            - superiortemporal_4
+            - superiortemporal_5
+        phonology:  # mid-post STS (bilateral)
+            - bankssts_*
+        lexical: # posterior MTG & ITS (bilateral)
+            - middletemporal_1
+            - middletemporal_2
+            - middletemporal_3
+            - inferiortemporal_5
+            - inferiortemporal_6
+            - inferiortemporal_7
+corbetta:
+    lh:
         FEF:
             - rostralmiddlefrontal_1
             - rostralmiddlefrontal_2
@@ -108,21 +125,16 @@ hickok_corbetta:
             - inferiorparietal_5
             - inferiorparietal_6
             - inferiorparietal_10
+        VFC:
+            - caudalmiddlefrontal_*
+            - parsopercularis_*
     rh:
-        phonetics:  # dorsal STG (bilateral)
-            - superiortemporal_1
-            - superiortemporal_2
-            - superiortemporal_4
-            - superiortemporal_5
-        phonology:  # mid-post STS (bilateral)
-            - bankssts_*
-        lexical: # posterior MTG & ITS (bilateral)
-            - middletemporal_1
-            - middletemporal_2
-            - middletemporal_3
-            - inferiortemporal_5
-            - inferiortemporal_6
-            - inferiortemporal_7
+        FEF:
+            - rostralmiddlefrontal_1
+            - rostralmiddlefrontal_2
+            - rostralmiddlefrontal_3
+            - rostralmiddlefrontal_4
+            - rostralmiddlefrontal_5
         IPS:
             - inferiorparietal_1
             - inferiorparietal_6
@@ -132,12 +144,6 @@ hickok_corbetta:
             - superiorparietal_7
             - superiorparietal_10
             - superiorparietal_11
-        FEF:
-            - rostralmiddlefrontal_1
-            - rostralmiddlefrontal_2
-            - rostralmiddlefrontal_3
-            - rostralmiddlefrontal_4
-            - rostralmiddlefrontal_5
         TPJ:
             - supramarginal_2
             - supramarginal_3
