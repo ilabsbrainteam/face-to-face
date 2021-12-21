@@ -21,15 +21,25 @@ friederici:
     lh:
         primary_auditory:
             - transversetemporal_*
-        phonological_wordform:
+        phonological_wordform:     # stage 1: pSTS
             - bankssts_*
-        morphosyntax_and_lexicon:  # this is Friederici's stages 2, 3, 4, 5
-            - superiortemporal_7
+        morphosyntax_and_lexicon:  # this is Friederici's stages 2, 3, 4, 5:
+            - superiortemporal_7   # aSTG + aSTS
             - superiortemporal_8
             - superiortemporal_9
             - superiortemporal_10
             - superiortemporal_11
-
+        # NOT EXPECTED IN 5mo INFANTS
+        # semantic_analysis:         # stage 7: BA45, BA47
+        #     - parsorbitalis_*
+        #     - parstriangularis_*
+        # syntactic_analysis_a:      # stage 8: BA44
+        #     - parsopercularis_*
+        # syntactic_analysis_b:      # stage 8: pSTG + pSTS (pSTS already used
+        #     - superiortemporal_1   #          for phonological_wordform)
+        #     - superiortemporal_2
+        #     - superiortemporal_3
+        #     - superiortemporal_4
     rh:
         primary_auditory:
             - transversetemporal_*
@@ -40,7 +50,9 @@ friederici:
             - superiortemporal_2
             - superiortemporal_4
             - superiortemporal_5
-
+        # NOT EXPECTED IN 5mo INFANTS
+        # top_down_prosody:  # BA44
+        #     - parsopercularis_*
 hickok:
     lh:
         phonetics:  # dorsal STG (bilateral)
