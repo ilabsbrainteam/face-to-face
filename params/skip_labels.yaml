@@ -3,4 +3,8 @@ aparc: &aparc_ !!python/tuple ['entorhinal']  # source space has no vertices in 
 aparc_sub: !!python/tuple []
 HCPMMP1_combined: !!python/tuple []
 HCPMMP1: !!python/tuple []
-hickok_corbetta: *aparc_  # derived from aparc
+# derived from aparc:
+f2f: *aparc_
+friederici: *aparc_
+hickok: *aparc_
+corbetta: *aparc_
