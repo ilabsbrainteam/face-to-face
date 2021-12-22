@@ -40,6 +40,8 @@ labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 
+custom_parcellations = ('hickok', 'corbetta', 'friederici', 'f2f')
+
 for subj in subjects:
     # check if we should skip
     if subj in excludes and len(excludes[subj]) == len(epoch_strategies):
@@ -76,13 +78,19 @@ for subj in subjects:
             # get average signal in each label
             for parcellation, skips in labels_to_skip.items():
                 # load labels
-                regexp = get_skip_regexp(skips)
-                if parcellation == 'hickok_corbetta':
-                    regexp = f'f2f-{regexp}'
+                prefix = (parcellation if parcellation in
+                          custom_parcellations else '')
+                regexp = get_skip_regexp(skips, prefix=prefix)
                 labels = mne.read_labels_from_annot(
                     subj, parcellation, regexp=regexp,
                     subjects_dir=subjects_dir)
-                label_names = [label.name for label in labels]
+                # strip off the model name
+                if parcellation in custom_parcellations:
+                    label_names = [label.name.split('-', maxsplit=1)[1]
+                                   for label in labels]
+                else:
+                    label_names = [label.name for label in labels]
+                assert len(label_names) == len(set(label_names))
                 # mode=mean doesn't risk signal cancellation if using only the
                 # magnitude of a (usu. free orientation constraint) inverse
                 mode = ('mean' if inv_params['estimate_type'] == 'magnitude'

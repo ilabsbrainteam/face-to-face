@@ -36,11 +36,13 @@ def load_subjects(skip=True):
     return subjects
 
 
-def get_skip_regexp(regions=(), skip_unknown=True):
+def get_skip_regexp(regions=(), skip_unknown=True, prefix=''):
     """Convert an iterable of region names to a label regexp excluding them."""
     unknown = ('unknown', r'\?\?\?')
     if skip_unknown:
         regions = regions + unknown
+    if prefix:
+        regions = tuple(f'{prefix}-{region}' for region in regions)
     if len(regions):
         return f"(?!{'|'.join(regions)})"
 
