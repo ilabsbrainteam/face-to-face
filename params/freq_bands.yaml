@@ -1,3 +1,5 @@
 delta: !!python/tuple [0, 4]
 theta: !!python/tuple [4, 8]
 beta: !!python/tuple [12, 30]
+infant_theta: !!python/tuple [3.6, 5.6]  # frontal
+infant_mu: !!python/tuple [6.4, 8.4]     # posterior
