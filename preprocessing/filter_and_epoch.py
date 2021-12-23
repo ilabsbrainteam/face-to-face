@@ -95,6 +95,9 @@ for subj in subjects:
             epochs.save(os.path.join(epo_dir, epo_fname), overwrite=True)
         del filtered_raw
 
+# note: `not_enough` values will be the same for all frequency bands, because
+# they're based on the autoreject cutoffs that happen *before* filtering. Here
+# they're sets, so duplicate entries from each frequency band don't matter.
 not_enough = {key: sorted(val) for key, val in not_enough.items()}
 with open(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'), 'w') as f:
     yaml.dump(not_enough, f)
