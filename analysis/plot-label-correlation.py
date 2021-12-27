@@ -33,9 +33,8 @@ for _dir in (plot_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 subjects = load_subjects()
-surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
-epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
+analysis_bands = load_params(os.path.join(param_dir, 'analysis_bands.yaml'))
 
 inv_params = load_params(os.path.join(param_dir, 'inverse_params.yaml'))
 cov_type = inv_params['cov_type']  # 'erm' or 'baseline'
@@ -49,37 +48,38 @@ cmap.set_extremes(under=extremes[0], over=extremes[1])
 labels_to_skip = load_params(os.path.join(param_dir, 'skip_labels.yaml'))
 
 for parcellation in labels_to_skip:
-    degree = None
-    # loop over subjects
-    for subj in subjects:
-        # check if we should skip
-        if subj in excludes and n_sec in excludes[subj]:
-            continue
-        # load connectivity
-        slug = get_slug(subj, freq_band, condition, parcellation)
-        conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
-        conn_fpath = os.path.join(conn_dir, conn_fname)
-        conn = mne_connectivity.read_connectivity(conn_fpath)
-        this_degree = mne_connectivity.degree(conn, threshold_prop)
-        if degree is None:
-            degree = this_degree.copy()
-        else:
-            degree = np.vstack((degree, this_degree))
+    for freq_band in analysis_bands:
+        degree = None
+        # loop over subjects
+        for subj in subjects:
+            # check if we should skip
+            if subj in excludes and n_sec in excludes[subj]:
+                continue
+            # load connectivity
+            slug = get_slug(subj, freq_band, condition, parcellation)
+            conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
+            conn_fpath = os.path.join(conn_dir, conn_fname)
+            conn = mne_connectivity.read_connectivity(conn_fpath)
+            this_degree = mne_connectivity.degree(conn, threshold_prop)
+            if degree is None:
+                degree = this_degree.copy()
+            else:
+                degree = np.vstack((degree, this_degree))
 
-    corr = np.corrcoef(degree, rowvar=False)
-    corr_df = pd.DataFrame(corr, index=conn.names, columns=conn.names)
-    heatmap_kwargs = dict(cmap=cmap, vmin=-corr_thresh, vmax=corr_thresh)
-    inches = np.round(degree.shape[1], -1) // 5
-    figsize = (inches, inches)
-    # make separate dfs for each hemisphere (we never merge across hemis)
-    for hemi in ('lh', 'rh'):
-        prefix = (f'{parcellation}-label-degree-correlations-'
-                  f'{n_sec}sec-{freq_band}-band')
-        regex = f'.*-{hemi}'
-        df = (corr_df.filter(regex=regex, axis=0)
-                     .filter(regex=regex, axis=1))
-        # clustered heatmap
-        cg = sns.clustermap(df, figsize=figsize, **heatmap_kwargs)
-        fname = f'{prefix}-clustered-{hemi}.png'
-        cg.fig.savefig(os.path.join(plot_dir, fname))
-        closefig(cg.fig)
+        corr = np.corrcoef(degree, rowvar=False)
+        corr_df = pd.DataFrame(corr, index=conn.names, columns=conn.names)
+        heatmap_kwargs = dict(cmap=cmap, vmin=-corr_thresh, vmax=corr_thresh)
+        inches = np.round(degree.shape[1], -1) // 5
+        figsize = (inches, inches)
+        # make separate dfs for each hemisphere (we never merge across hemis)
+        for hemi in ('lh', 'rh'):
+            prefix = (f'{parcellation}-label-degree-correlations-'
+                      f'{n_sec}sec-{freq_band}-band')
+            regex = f'.*-{hemi}'
+            df = (corr_df.filter(regex=regex, axis=0)
+                         .filter(regex=regex, axis=1))
+            # clustered heatmap
+            cg = sns.clustermap(df, figsize=figsize, **heatmap_kwargs)
+            fname = f'{prefix}-clustered-{hemi}.png'
+            cg.fig.savefig(os.path.join(plot_dir, fname))
+            closefig(cg.fig)

@@ -30,8 +30,8 @@ def get_halfvec(array, k=0):
 
 
 # flags
-freq_band = 'theta'
 n_sec = 7  # epoch duration to use
+print_results = False
 
 # enable interface to R
 corpcor = importr('corpcor')
@@ -53,6 +53,7 @@ subjects = load_subjects()
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 roi_edge_dict = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
+analysis_bands = load_params(os.path.join(param_dir, 'analysis_bands.yaml'))
 
 # how many subjs are available at this epoch length?
 this_excludes = {subj for subj in excludes if n_sec in excludes[subj]}
@@ -62,120 +63,132 @@ n_subj = len(this_subjects)
 # loop over models
 for parcellation, roi_edges in roi_edge_dict.items():
     roi_nodes = sorted(set(reduce(tuple.__add__, roi_edges)))
+    # loop over analysis bands
+    for freq_band in analysis_bands:
+        # load xarray
+        fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
+        graph_metrics = xr.load_dataarray(os.path.join(xarray_dir, fname))
 
-    # load xarray
-    fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
-    graph_metrics = xr.load_dataarray(os.path.join(xarray_dir, fname))
+        for use_edge_rois in (False, True):
+            n_nodes = (len(roi_nodes) if use_edge_rois else
+                       graph_metrics.coords['region_1'].size)
+            # compute mean laplacians
+            mean_over_subj = graph_metrics.mean(dim='subject')
+            mean_laplacians = mean_over_subj.loc[:, 'graph_laplacian']
+            # absence of off-diagonal structural zeros is an assumption of the
+            # method
+            for _ml in mean_laplacians:
+                offdiag = _ml.values[np.tril_indices_from(_ml, k=-1)]
+                assert np.all(offdiag != 0)
+            # reduce matrices to half-vectorized form (removes redundant
+            # entries)
+            mean_halfvecs = np.array(
+                [get_halfvec(_ml) for _ml in mean_laplacians])
+            mean_diff_halfvec = np.diff(mean_halfvecs, axis=0).squeeze()
+            subj_laplacians = graph_metrics.loc[:, :, 'graph_laplacian']
+            subj_diffs = np.diff(subj_laplacians, axis=0).squeeze()
+            subj_diff_halfvecs = np.array(
+                [get_halfvec(arr) for arr in subj_diffs])
+            # restrict halfvecs to just the ROI edges (if desired)
+            if use_edge_rois:
+                halfvec_mask = get_halfvec(
+                    mean_over_subj.loc['attend', 'orthog_proj_mat']
+                    ).astype(bool)
+                assert halfvec_mask.sum() == len(roi_edges)
+            else:
+                halfvec_mask = slice(None)
+            subj_diff_halfvecs = subj_diff_halfvecs[:, halfvec_mask]
+            mean_diff_halfvec = mean_diff_halfvec[halfvec_mask]
+            # call out to R to use special shrinkage methods designed for
+            # graphs use corpcor.cov_shrink(...) if we need sigma (not just its
+            # inverse)
+            sigma_inv = corpcor.invcov_shrink(subj_diff_halfvecs)
+            # TODO for general implementation: include Higham 2002 algorithm
+            # that ensures positive definiteness / uses nearest (using
+            # Frobenius norm) positive definite neighbor. Pseudocode:
+            #     ∆S_0 = 0, Y_0 = A
+            #     for k = 1, 2, . . .
+            #         R_k = Y_{k−1} − ∆S_{k−1}
+            #         X_k = P_S (R_k)
+            #         ∆S_k = X_k − R_k
+            #         Y_k = P_U (X_k)
+            #     end
 
-    for use_edge_rois in (False, True):
-        n_nodes = (len(roi_nodes) if use_edge_rois else
-                   graph_metrics.coords['region_1'].size)
-        # compute mean laplacians
-        mean_over_subj = graph_metrics.mean(dim='subject')
-        mean_laplacians = mean_over_subj.loc[:, 'graph_laplacian']
-        # absence of off-diagonal structural 0s is an assumption of the method
-        for _ml in mean_laplacians:
-            offdiag = _ml.values[np.tril_indices_from(_ml, k=-1)]
-            assert np.all(offdiag != 0)
-        # reduce matrices to half-vectorized form (removes redundant entries)
-        mean_halfvecs = np.array([get_halfvec(_ml) for _ml in mean_laplacians])
-        mean_diff_halfvec = np.diff(mean_halfvecs, axis=0).squeeze()
-        subj_laplacians = graph_metrics.loc[:, :, 'graph_laplacian']
-        subj_diffs = np.diff(subj_laplacians, axis=0).squeeze()
-        subj_diff_halfvecs = np.array([get_halfvec(arr) for arr in subj_diffs])
-        # restrict halfvecs to just the ROI edges (if desired)
-        if use_edge_rois:
-            halfvec_mask = get_halfvec(
-                mean_over_subj.loc['attend', 'orthog_proj_mat']
-                ).astype(bool)
-            assert halfvec_mask.sum() == len(roi_edges)
-        else:
-            halfvec_mask = slice(None)
-        subj_diff_halfvecs = subj_diff_halfvecs[:, halfvec_mask]
-        mean_diff_halfvec = mean_diff_halfvec[halfvec_mask]
-        # call out to R to use special shrinkage methods designed for graphs
-        # use corpcor.cov_shrink(...) if we need sigma (not just its inverse)
-        sigma_inv = corpcor.invcov_shrink(subj_diff_halfvecs)
-        # TODO for general implementation: include Higham 2002 algorithm that
-        # ensures positive definiteness / uses nearest (using Frobenius norm)
-        # positive definite neighbor. Pseudocode:
-        #     ∆S_0 = 0, Y_0 = A
-        #     for k = 1, 2, . . .
-        #         R_k = Y_{k−1} − ∆S_{k−1}
-        #         X_k = P_S (R_k)
-        #         ∆S_k = X_k − R_k
-        #         Y_k = P_U (X_k)
-        #     end
+            # calculate test statistic
+            statistic = n_subj * (mean_diff_halfvec @ sigma_inv @
+                                  mean_diff_halfvec)
+            degrees_of_freedom = comb(n_nodes, 2, exact=True)
+            pval = 1 - chi2.cdf(statistic, df=degrees_of_freedom)
+            # estimate contribution of each edge to the difference betw.
+            # conditions
+            sqrt_inv_sigma = sqrtm(sigma_inv)
+            lambda_hat = sqrt_inv_sigma @ mean_diff_halfvec
+            np.testing.assert_almost_equal(statistic,
+                                           n_subj * np.sum(lambda_hat ** 2))
+            lambda_sq = (mean_over_subj.loc[:, 'lambda_squared']
+                                       .mean(dim='condition'))
+            triu_indices = np.triu_indices_from(lambda_sq)
+            if use_edge_rois:
+                triu_indices = tuple(ixs[halfvec_mask] for ixs in triu_indices)
+            signed_lambda_sq = np.sign(lambda_hat) * lambda_hat ** 2
+            lambda_sq.values[triu_indices] = signed_lambda_sq
+            lambda_sq.values.T[triu_indices] = signed_lambda_sq
+            # make sure we got the right indices
+            if use_edge_rois:
+                for dim, region in enumerate(lambda_sq.coords.dims):
+                    nodes = (lambda_sq
+                             .coords[region]
+                             .values[np.nonzero(lambda_sq)[dim].values])
+                    assert set(nodes) == set(roi_nodes)
+            # sort edges by strength of contribution (increasing)
+            ranked_indices = np.argsort(lambda_hat ** 2)
+            ranked_lambda_hat = lambda_hat[ranked_indices]
+            ranked_edge_indices = tuple(
+                x[ranked_indices] for x in triu_indices)
+            ranked_edges = list(zip(
+                *(lambda_sq[ranked_edge_indices].coords[reg].values.tolist()
+                  for reg in lambda_sq.coords.dims)))
+            # set cutoff for which ones to print
+            q = 75 if use_edge_rois else 99
+            abs_thresh = np.percentile(lambda_hat ** 2, q)
+            thresh_ix = np.searchsorted(ranked_lambda_hat ** 2, abs_thresh)
+            # print which edges change the most
+            if print_results:
+                print(f'TOP {100 - q}% EDGES WITH STRONGEST DIFFERENCE '
+                      'BETWEEN CONDITIONS (ATTEND MINUS IGNORE):')
+                # convert thresh_ix from ascending → descending
+                _slice = slice(None, thresh_ix, -1)
+                for _nodes, _hat in zip(ranked_edges[_slice],
+                                        ranked_lambda_hat[_slice]):
+                    contrib = np.sign(_hat) * (_hat ** 2)
+                    print(f'{_nodes[0]:27} ←→ {_nodes[1]:>27}'
+                          f'    {round(contrib, 3):<+06.03}')
 
-        # calculate test statistic
-        statistic = n_subj * (mean_diff_halfvec @ sigma_inv @
-                              mean_diff_halfvec)
-        degrees_of_freedom = comb(n_nodes, 2, exact=True)
-        pval = 1 - chi2.cdf(statistic, df=degrees_of_freedom)
-        # estimate contribution of each edge to the difference betw. conditions
-        sqrt_inv_sigma = sqrtm(sigma_inv)
-        lambda_hat = sqrt_inv_sigma @ mean_diff_halfvec
-        np.testing.assert_almost_equal(statistic,
-                                       n_subj * np.sum(lambda_hat ** 2))
-        lambda_sq = (mean_over_subj.loc[:, 'lambda_squared']
-                                   .mean(dim='condition'))
-        triu_indices = np.triu_indices_from(lambda_sq)
-        if use_edge_rois:
-            triu_indices = tuple(ixs[halfvec_mask] for ixs in triu_indices)
-        signed_lambda_sq = np.sign(lambda_hat) * lambda_hat ** 2
-        lambda_sq.values[triu_indices] = signed_lambda_sq
-        lambda_sq.values.T[triu_indices] = signed_lambda_sq
-        # make sure we got the right indices
-        if use_edge_rois:
-            for dim, region in enumerate(lambda_sq.coords.dims):
-                nodes = (lambda_sq.coords[region]
-                                  .values[np.nonzero(lambda_sq)[dim].values])
-                assert set(nodes) == set(roi_nodes)
-        # sort edges by strength of contribution (increasing)
-        ranked_indices = np.argsort(lambda_hat ** 2)
-        ranked_lambda_hat = lambda_hat[ranked_indices]
-        ranked_edge_indices = tuple(x[ranked_indices] for x in triu_indices)
-        ranked_edges = list(zip(
-            *(lambda_sq[ranked_edge_indices].coords[reg].values.tolist()
-              for reg in lambda_sq.coords.dims)))
-        # set cutoff for which ones to print
-        q = 75 if use_edge_rois else 99
-        abs_thresh = np.percentile(lambda_hat ** 2, q)
-        thresh_ix = np.searchsorted(ranked_lambda_hat ** 2, abs_thresh)
-        # print which edges change the most
-        print(f'TOP {100 - q}% EDGES WITH STRONGEST DIFFERENCE BETWEEN '
-              'CONDITIONS (ATTEND MINUS IGNORE):')
-        _slice = slice(None, thresh_ix, -1)  # threshold ascending → descending
-        for _nodes, _hat in zip(ranked_edges[_slice],
-                                ranked_lambda_hat[_slice]):
-            contrib = np.sign(_hat) * (_hat ** 2)
-            print(f'{_nodes[0]:27} ←→ {_nodes[1]:>27}'
-                  f'    {round(contrib, 3):<+06.03}')
-
-        # save stats info to file
-        edge_contributions = {
-            f'{" <--> ".join(_edge)}': float(_hat)
-            for _edge, _hat in zip(ranked_edges[::-1], ranked_lambda_hat[::-1])
-        }
-        output = dict(
-            statistic=float(statistic),
-            degrees_of_freedom=degrees_of_freedom,
-            p_value=float(pval),
-            lambda_hat=edge_contributions
-        )
-        roi = 'roi' if use_edge_rois else 'all'
-        slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
-        fname = f'{slug}-graph-level-stats.yaml'
-        with open(os.path.join(stats_dir, fname), 'w') as f:
-            yaml.dump(output, f)
-        # save lambda hat vector and lambda squared matrix
-        coords = {f'region_{ix + 1}': ('edge', list(region))
-                  for ix, region in enumerate(zip(*ranked_edges))}
-        lambda_hat_xarray = xr.DataArray(ranked_lambda_hat,
-                                         coords=coords,
-                                         dims=['edge'],
-                                         name='lambda hat')
-        fname = f'{slug}-lambda-hat.nc'
-        lambda_hat_xarray.to_netcdf(os.path.join(xarray_dir, fname))
-        fname = f'{slug}-lambda-sq.nc'
-        lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))
+            # save stats info to file
+            edge_contributions = {
+                f'{" <--> ".join(_edge)}': float(_hat)
+                for _edge, _hat in zip(
+                    ranked_edges[::-1], ranked_lambda_hat[::-1])
+            }
+            output = dict(
+                statistic=float(statistic),
+                degrees_of_freedom=degrees_of_freedom,
+                p_value=float(pval),
+                lambda_hat=edge_contributions
+            )
+            roi = 'roi' if use_edge_rois else 'all'
+            slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{roi}-edges'
+            fname = f'{slug}-graph-level-stats.yaml'
+            with open(os.path.join(stats_dir, fname), 'w') as f:
+                yaml.dump(output, f)
+            # save lambda hat vector and lambda squared matrix
+            coords = {f'region_{ix + 1}': ('edge', list(region))
+                      for ix, region in enumerate(zip(*ranked_edges))}
+            lambda_hat_xarray = xr.DataArray(ranked_lambda_hat,
+                                             coords=coords,
+                                             dims=['edge'],
+                                             name='lambda hat')
+            fname = f'{slug}-lambda-hat.nc'
+            lambda_hat_xarray.to_netcdf(os.path.join(xarray_dir, fname))
+            fname = f'{slug}-lambda-sq.nc'
+            lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))

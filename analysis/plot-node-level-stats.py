@@ -12,7 +12,6 @@ import mne
 from f2f_helpers import load_paths, load_params, yamload
 
 # flags
-freq_band = 'theta'
 n_sec = 7  # epoch duration to use
 scopes = ('roi', 'all')
 
@@ -28,6 +27,7 @@ for _dir in (plot_dir,):
 # load other config values
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 all_roi_dicts = load_params(os.path.join(param_dir, 'rois.yaml'))
+analysis_bands = load_params(os.path.join(param_dir, 'analysis_bands.yaml'))
 
 # for plotting
 medial_wall_labels = {parc: (
@@ -43,43 +43,45 @@ Brain = mne.viz.get_brain_class()
 
 for parcellation in all_roi_dicts:
     for scope in scopes:
-        slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{scope}-edges'
-        fname = f'{slug}-node-level-stats.yaml'
-        with open(os.path.join(stats_dir, fname)) as f:
-            stats = yamload(f)
-        for thresh_kind in stats:
-            for metric in stats[thresh_kind]:
-                regions = list(stats[thresh_kind][metric])
-                # plot signifs
-                brain = Brain(
-                    surrogate, hemi='split', surf='inflated', size=(1200, 900),
-                    cortex='low_contrast', views=['lateral', 'medial'],
-                    background='white', subjects_dir=subjects_dir)
-                regexp = '|'.join(regions)
-                # avoid empty regexp loading all labels
-                signif_labels = (
-                    list() if not len(regions) else
-                    mne.read_labels_from_annot(
-                        surrogate, parcellation, regexp=regexp,
+        for freq_band in analysis_bands:
+            slug = f'{parcellation}-{n_sec}sec-{freq_band}-band-{scope}-edges'
+            fname = f'{slug}-node-level-stats.yaml'
+            with open(os.path.join(stats_dir, fname)) as f:
+                stats = yamload(f)
+            for thresh_kind in stats:
+                for metric in stats[thresh_kind]:
+                    regions = list(stats[thresh_kind][metric])
+                    # plot signifs
+                    brain = Brain(
+                        surrogate, hemi='split', surf='inflated',
+                        size=(1200, 900), cortex='low_contrast',
+                        views=['lateral', 'medial'], background='white',
                         subjects_dir=subjects_dir)
-                    )
-                # prevent text overlap
-                text_bookkeeping = {(row, col): list() for row in (0, 1)
-                                    for col in (0, 1)}
-                # draw labels and add label names
-                for label in signif_labels:
-                    brain.add_label(label, alpha=0.5)
-                    brain.add_label(label, borders=True)
-                    col = int(label.hemi == 'rh')
-                    row = int(label.name.rsplit('-')[0].rsplit('_')[0]
-                              in medial_wall_labels[parcellation])
-                    y = 0.02 + 0.06 * len(text_bookkeeping[(row, col)])
-                    text_bookkeeping[(row, col)].append(label.name)
-                    brain.add_text(
-                        0.05, y, text=label.name.rsplit('-')[0],
-                        name=label.name, row=row, col=col, color=label.color,
-                        font_size=12)
-                fname = (f'{slug}-{metric}-{thresh_kind}-signif.png')
-                brain.save_image(os.path.join(plot_dir, fname))
-                brain.close()
-                del brain
+                    regexp = '|'.join(regions)
+                    # avoid empty regexp loading all labels
+                    signif_labels = (
+                        list() if not len(regions) else
+                        mne.read_labels_from_annot(
+                            surrogate, parcellation, regexp=regexp,
+                            subjects_dir=subjects_dir)
+                        )
+                    # prevent text overlap
+                    text_bookkeeping = {(row, col): list() for row in (0, 1)
+                                        for col in (0, 1)}
+                    # draw labels and add label names
+                    for label in signif_labels:
+                        brain.add_label(label, alpha=0.5)
+                        brain.add_label(label, borders=True)
+                        col = int(label.hemi == 'rh')
+                        row = int(label.name.rsplit('-')[0].rsplit('_')[0]
+                                  in medial_wall_labels[parcellation])
+                        y = 0.02 + 0.06 * len(text_bookkeeping[(row, col)])
+                        text_bookkeeping[(row, col)].append(label.name)
+                        brain.add_text(
+                            0.05, y, text=label.name.rsplit('-')[0],
+                            name=label.name, row=row, col=col,
+                            color=label.color, font_size=12)
+                    fname = (f'{slug}-{metric}-{thresh_kind}-signif.png')
+                    brain.save_image(os.path.join(plot_dir, fname))
+                    brain.close()
+                    del brain

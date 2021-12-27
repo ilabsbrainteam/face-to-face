@@ -21,7 +21,6 @@ from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
                          get_skip_regexp)
 
 # flags
-freq_band = 'infant_theta'
 conditions = ['attend', 'ignore']
 threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
@@ -42,6 +41,7 @@ surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 epoch_strategies = load_params(os.path.join(param_dir, 'min_epochs.yaml'))
 excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 roi_edge_dict = load_params(os.path.join(param_dir, 'roi-edges.yaml'))
+analysis_bands = load_params(os.path.join(param_dir, 'analysis_bands.yaml'))
 
 for parcellation, roi_edges in roi_edge_dict.items():
     # load all labels
@@ -69,48 +69,50 @@ for parcellation, roi_edges in roi_edge_dict.items():
     graph_metrics = xr.DataArray(np.full(shape, fill_value=_min, dtype=_dtype),
                                  coords=coords,
                                  name='graph-level connectivity metrics')
-    # loop over conditions & subjects
-    for condition in conditions:
-        for subj in this_subjects:
-            # load connectivity
-            slug = get_slug(subj, freq_band, condition, parcellation)
-            conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
-            conn_fpath = os.path.join(conn_dir, conn_fname)
-            conn = mne_connectivity.read_connectivity(conn_fpath)
-            # envelope correlations
-            conn_matrix = conn.get_data('dense').squeeze()
-            graph_metrics.loc[condition, subj,
-                              'envelope_correlation'] = conn_matrix
-            # adjacency (thresholded)
-            quantile = 1 - threshold_prop
-            indices = np.tril_indices_from(conn_matrix, k=-1)
-            threshold = np.quantile(conn_matrix[indices], quantile)
-            adjacency = (conn_matrix > threshold).astype(int)
-            graph_metrics.loc[condition, subj, 'adjacency'] = adjacency
-            # weighted "adjacency" (thresholded and unthresholded)
-            graph_metrics.loc[
-                condition, subj, 'unthresholded_weighted_adjacency'
-                ] = np.where(conn_matrix > 0, conn_matrix, adjacency)
-            graph_metrics.loc[
-                condition, subj, 'thresholded_weighted_adjacency'
-                ] = np.where(conn_matrix > threshold, conn_matrix, adjacency)
-            # graph laplacian
-            graph = nx.Graph(graph_metrics
-                             .loc[condition, subj,
-                                  'unthresholded_weighted_adjacency']
-                             .to_pandas())
-            assert is_connected(graph)  # assumption of method
-            laplacian = laplacian_matrix(graph)
-            graph_metrics.loc[condition, subj,
-                              'graph_laplacian'] = laplacian.toarray()
-    # placeholder, used later only in aggregate (not for each subj)
-    graph_metrics.loc[:, :, 'lambda_squared'] = 0
-    # prep for restricting to specific edge ROIs
-    graph_metrics.loc[:, :, 'orthog_proj_mat'] = 0
-    for _node1, _node2 in roi_edges:
-        graph_metrics.loc[:, :, 'orthog_proj_mat', _node1, _node2] = 1
-        graph_metrics.loc[:, :, 'orthog_proj_mat', _node2, _node1] = 1
-    # make sure every cell got filled
-    assert np.all(graph_metrics > _min)
-    fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
-    graph_metrics.to_netcdf(os.path.join(xarray_dir, fname))
+    # loop over bands, conditions & subjects
+    for freq_band in analysis_bands:
+        for condition in conditions:
+            for subj in this_subjects:
+                # load connectivity
+                slug = get_slug(subj, freq_band, condition, parcellation)
+                conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
+                conn_fpath = os.path.join(conn_dir, conn_fname)
+                conn = mne_connectivity.read_connectivity(conn_fpath)
+                # envelope correlations
+                conn_matrix = conn.get_data('dense').squeeze()
+                graph_metrics.loc[condition, subj,
+                                  'envelope_correlation'] = conn_matrix
+                # adjacency (thresholded)
+                quantile = 1 - threshold_prop
+                indices = np.tril_indices_from(conn_matrix, k=-1)
+                threshold = np.quantile(conn_matrix[indices], quantile)
+                adjacency = (conn_matrix > threshold).astype(int)
+                graph_metrics.loc[condition, subj, 'adjacency'] = adjacency
+                # weighted "adjacency" (thresholded and unthresholded)
+                graph_metrics.loc[
+                    condition, subj, 'unthresholded_weighted_adjacency'
+                    ] = np.where(conn_matrix > 0, conn_matrix, adjacency)
+                graph_metrics.loc[
+                    condition, subj, 'thresholded_weighted_adjacency'
+                    ] = np.where(conn_matrix > threshold, conn_matrix,
+                                 adjacency)
+                # graph laplacian
+                graph = nx.Graph(graph_metrics
+                                 .loc[condition, subj,
+                                      'unthresholded_weighted_adjacency']
+                                 .to_pandas())
+                assert is_connected(graph)  # assumption of method
+                laplacian = laplacian_matrix(graph)
+                graph_metrics.loc[condition, subj,
+                                  'graph_laplacian'] = laplacian.toarray()
+        # placeholder, used later only in aggregate (not for each subj)
+        graph_metrics.loc[:, :, 'lambda_squared'] = 0
+        # prep for restricting to specific edge ROIs
+        graph_metrics.loc[:, :, 'orthog_proj_mat'] = 0
+        for _node1, _node2 in roi_edges:
+            graph_metrics.loc[:, :, 'orthog_proj_mat', _node1, _node2] = 1
+            graph_metrics.loc[:, :, 'orthog_proj_mat', _node2, _node1] = 1
+        # make sure every cell got filled
+        assert np.all(graph_metrics > _min)
+        fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
+        graph_metrics.to_netcdf(os.path.join(xarray_dir, fname))
