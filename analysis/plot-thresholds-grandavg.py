@@ -25,6 +25,7 @@ from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
 freq_band = 'beta'
 condition = 'allconds'
 parcellation = 'aparc_sub'
+n_sec = 7  # epoch duration to use
 
 # proportion of strongest edges to keep in the graph:
 threshold_props = np.linspace(0.05, 0.5, 10)
@@ -59,9 +60,8 @@ excludes = load_params(os.path.join(epo_dir, 'not-enough-good-epochs.yaml'))
 # precompute how many excluded subjs per epoch length
 for epoch_dict in epoch_strategies:
     epoch_dict['n_excludes'] = 0
-    n_sec = int(epoch_dict["length"])
     for exclude in excludes.values():
-        if n_sec in exclude:
+        if int(epoch_dict['length']) in exclude:
             epoch_dict['n_excludes'] += 1
 
 for threshold_prop in threshold_props:
@@ -83,31 +83,31 @@ for threshold_prop in threshold_props:
         inv_fname = inv_fnames[cov_type]
         inv_fpath = os.path.join(data_root, subj, 'inverse', inv_fname)
         source_space = read_inverse_operator(inv_fpath)['src']
-        # loop over epoch lengths
-        for epoch_dict in epoch_strategies:
-            # check if we should skip
-            n_sec = int(epoch_dict["length"])
-            if subj in excludes and n_sec in excludes[subj]:
-                continue
-            # load connectivity
-            slug = get_slug(subj, freq_band, condition, parcellation)
-            conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
-            conn_fpath = os.path.join(conn_dir, conn_fname)
-            conn = mne_connectivity.read_connectivity(conn_fpath)
-            full_degree = mne_connectivity.degree(conn, threshold_prop)
-            # convert to STC
-            stc = mne.labels_to_stc(labels, full_degree, subject=subj,
-                                    src=source_space)
-            # aggregate
-            if grandavg_stc.get(n_sec, None) is None:
-                grandavg_stc[n_sec] = stc
-            else:
-                grandavg_stc[n_sec].data += stc.data
-            del conn, full_degree
+        # fill labels
+        labels = [label.restrict(source_space) for label in labels]
+        # check if we should skip
+        if subj in excludes and n_sec in excludes[subj]:
+            continue
+        # load connectivity
+        slug = get_slug(subj, freq_band, condition, parcellation)
+        conn_fname = (f'{slug}-{n_sec}sec-envelope-correlation.nc')
+        conn_fpath = os.path.join(conn_dir, conn_fname)
+        conn = mne_connectivity.read_connectivity(conn_fpath)
+        full_degree = mne_connectivity.degree(conn, threshold_prop)
+        # convert to STC
+        stc = mne.labels_to_stc(labels, full_degree, subject=subj,
+                                src=source_space)
+        # aggregate
+        if grandavg_stc.get(n_sec, None) is None:
+            grandavg_stc[n_sec] = stc
+        else:
+            grandavg_stc[n_sec].data += stc.data
+        del conn, full_degree
 
     # finish aggregation over subjects
     for epoch_dict in epoch_strategies:
-        n_sec = int(epoch_dict["length"])
+        if epoch_dict['length'] != n_sec:
+            continue
         n_excludes = epoch_dict['n_excludes']
         grandavg_stc[n_sec].data /= (len(subjects) - n_excludes)
 
