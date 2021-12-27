@@ -79,8 +79,7 @@ for parcellation in all_roi_dicts:
                         0.05, y, text=label.name.rsplit('-')[0],
                         name=label.name, row=row, col=col, color=label.color,
                         font_size=12)
-                fname = (f'{parcellation}-{n_sec}sec-{metric}-'
-                         f'{thresh_kind}-signif-{scope}-labels.png')
+                fname = (f'{slug}-{metric}-{thresh_kind}-signif.png')
                 brain.save_image(os.path.join(plot_dir, fname))
                 brain.close()
                 del brain
