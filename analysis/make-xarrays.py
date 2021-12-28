@@ -21,7 +21,7 @@ from f2f_helpers import (load_paths, load_subjects, load_params, get_slug,
                          get_skip_regexp)
 
 # flags
-conditions = ['attend', 'ignore']
+conditions = ['attend', 'ignore', 'allconds']
 threshold_prop = 0.15
 n_sec = 7  # epoch duration to use
 
