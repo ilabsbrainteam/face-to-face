@@ -20,3 +20,6 @@
 - run `node-level-stats.py` to compute and plot some node-level comparisons.
 - run `plot-node-level-stats.py` to show which regions change most between
   conditions.
+- run once `../behavioral/clean-behavioral-data.py`, then run
+  `correlate-behavior.py` to generate correlations between node metrics and
+  behavioral measures.
