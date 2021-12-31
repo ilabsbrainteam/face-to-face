@@ -19,20 +19,11 @@ import xarray as xr
 from rpy2.robjects import numpy2ri
 from rpy2.robjects.packages import importr
 
-from f2f_helpers import load_paths, load_subjects, load_params
-
-
-def get_halfvec(array, k=0):
-    indices = np.triu_indices_from(array, k=k)
-    halfvec = (array.values[indices] if isinstance(array, xr.DataArray) else
-               array[indices])
-    return halfvec
-
+from f2f_helpers import load_paths, load_subjects, load_params, get_halfvec
 
 # flags
 n_sec = 7  # epoch duration to use
 print_results = False
-compare_conds = ['attend', 'ignore']
 
 # enable interface to R
 corpcor = importr('corpcor')
@@ -69,9 +60,9 @@ for parcellation, roi_edges in roi_edge_dict.items():
         # load xarray
         fname = f'{parcellation}-{n_sec}sec-{freq_band}-band-graph-metrics.nc'
         graph_metrics = xr.load_dataarray(os.path.join(xarray_dir, fname))
-        # remove the "allconds" condition
+        # separate the "allconds" condition
         allconds = graph_metrics.loc[['allconds']]
-        graph_metrics = graph_metrics.loc[compare_conds]
+        graph_metrics = graph_metrics.loc[['attend', 'ignore']]
         # loop over xarrays: all trials, or attend-vs-ignore comparison
         for cond_name, _xarray in dict(all_conds=allconds,
                                        attend_vs_ignore=graph_metrics).items():
@@ -90,8 +81,8 @@ for parcellation, roi_edges in roi_edge_dict.items():
                 # if pooling all trials (allconds), turn np.diff() into a no-op
                 # by passing n=0 (otherwise it returns an empty array)
                 n_diff = 0 if cond_name == 'all_conds' else 1
-                # reduce matrices to half-vectorized form (removes redundant
-                # entries)
+                # reduce matrices to half-vectorized form (upper triangle
+                # including main diagonal; AKA remove redundant entries)
                 mean_halfvecs = np.array(
                     [get_halfvec(_ml) for _ml in mean_laplacians])
                 mean_diff_halfvec = np.diff(mean_halfvecs, n=n_diff, axis=0
@@ -112,8 +103,8 @@ for parcellation, roi_edges in roi_edge_dict.items():
                 subj_diff_halfvecs = subj_diff_halfvecs[:, halfvec_mask]
                 mean_diff_halfvec = mean_diff_halfvec[halfvec_mask]
                 # call out to R to use special shrinkage methods designed for
-                # graphs use corpcor.cov_shrink(...) if we need sigma (not just
-                # its inverse)
+                # graphs; use corpcor.cov_shrink(...) instead if we needed
+                # sigma (not just its inverse)
                 sigma_inv = corpcor.invcov_shrink(subj_diff_halfvecs)
                 # TODO for general implementation: include Higham 2002
                 # algorithm that ensures positive definiteness / uses nearest
@@ -132,40 +123,46 @@ for parcellation, roi_edges in roi_edge_dict.items():
                 degrees_of_freedom = comb(n_nodes, 2, exact=True)
                 pval = 1 - chi2.cdf(statistic, df=degrees_of_freedom)
                 # estimate contribution of each edge to the difference betw.
-                # conditions
+                # conditions (lambda_sq_vec)
                 sqrt_inv_sigma = sqrtm(sigma_inv)
                 lambda_hat = sqrt_inv_sigma @ mean_diff_halfvec
+                lambda_sq_vec = lambda_hat ** 2
+                # sanity check: alternate computation of test statistic
+                # (Ginestet et al 2017, section 4.4)
                 decimal = 5 if cond_name == 'all_conds' else 7
                 np.testing.assert_almost_equal(
-                    statistic, n_subj * np.sum(lambda_hat ** 2),
-                    decimal=decimal)
-                lambda_sq = (mean_over_subj.loc[:, 'lambda_squared']
-                                           .mean(dim='condition'))
-                triu_indices = np.triu_indices_from(lambda_sq)
+                    statistic, n_subj * np.sum(lambda_sq_vec), decimal=decimal)
+                # populate `signed_lambda_sq` matrix (when loaded in it's just
+                # zeros, but conveniently it has all the right axis labels).
+                # Note: we're preserving the sign of lambda_hat to keep track
+                # of directionality of effect for each edge, for the
+                # attend-minus-ignore analysis.
+                signed_lambda_sq = (mean_over_subj.loc[:, 'lambda_squared']
+                                                  .mean(dim='condition'))
+                triu_indices = np.triu_indices_from(signed_lambda_sq)
                 if use_edge_rois:
                     triu_indices = tuple(ixs[halfvec_mask]
                                          for ixs in triu_indices)
-                signed_lambda_sq = np.sign(lambda_hat) * lambda_hat ** 2
-                lambda_sq.values[triu_indices] = signed_lambda_sq
-                lambda_sq.values.T[triu_indices] = signed_lambda_sq
+                signed_lambda_sq_vec = np.sign(lambda_hat) * lambda_sq_vec
+                signed_lambda_sq.values[triu_indices] = signed_lambda_sq_vec
+                signed_lambda_sq.values.T[triu_indices] = signed_lambda_sq_vec
                 # make sure we got the right indices
                 if use_edge_rois:
-                    for dim, region in enumerate(lambda_sq.coords.dims):
-                        nodes = (lambda_sq
-                                 .coords[region]
-                                 .values[np.nonzero(lambda_sq)[dim].values])
+                    for dim, region in enumerate(signed_lambda_sq.coords.dims):
+                        indices = np.nonzero(signed_lambda_sq)[dim].values
+                        nodes = signed_lambda_sq.coords[region].values[indices]
                         assert set(nodes) == set(roi_nodes)
                 # sort edges by strength of contribution (increasing)
-                ranked_indices = np.argsort(lambda_hat ** 2)
+                ranked_indices = np.argsort(lambda_sq_vec)
                 ranked_lambda_hat = lambda_hat[ranked_indices]
                 ranked_edge_indices = tuple(
                     x[ranked_indices] for x in triu_indices)
                 ranked_edges = list(zip(
-                    *(lambda_sq[ranked_edge_indices].coords[reg].values
-                      for reg in lambda_sq.coords.dims)))
+                    *(signed_lambda_sq[ranked_edge_indices].coords[reg].values
+                      for reg in signed_lambda_sq.coords.dims)))
                 # set cutoff for which ones to print
                 q = 75 if use_edge_rois else 99
-                abs_thresh = np.percentile(lambda_hat ** 2, q)
+                abs_thresh = np.percentile(lambda_sq_vec, q)
                 thresh_ix = np.searchsorted(ranked_lambda_hat ** 2, abs_thresh)
                 # print which edges change the most
                 if print_results:
@@ -207,4 +204,4 @@ for parcellation, roi_edges in roi_edge_dict.items():
                 fname = f'{slug}-lambda-hat.nc'
                 lambda_hat_xarray.to_netcdf(os.path.join(xarray_dir, fname))
                 fname = f'{slug}-lambda-sq.nc'
-                lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))
+                signed_lambda_sq.to_netcdf(os.path.join(xarray_dir, fname))

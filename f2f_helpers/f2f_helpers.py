@@ -4,6 +4,7 @@ import os
 import yaml
 from functools import partial
 import numpy as np
+from xarray import DataArray
 
 paramdir = os.path.join('..', 'params')
 yamload = partial(yaml.load, Loader=yaml.FullLoader)
@@ -70,3 +71,11 @@ def compute_epoch_offsets(length, overlap, orig_dur, sfreq, n_min=None):
     assert np.all(np.diff(offset_samps) >= np.floor(spacing * sfreq))
     # make 2D and vertical
     return np.stack([offset_samps], axis=1)
+
+
+def get_halfvec(array, k=0):
+    """Convert matrix to (row-wise) vectorized upper triangle."""
+    indices = np.triu_indices_from(array, k=k)
+    halfvec = (array.values[indices] if isinstance(array, DataArray) else
+               array[indices])
+    return halfvec

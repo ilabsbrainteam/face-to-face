@@ -3,5 +3,5 @@
 __version__ = '0.1'
 
 from .f2f_helpers import (  # noqa
-    load_paths, load_subjects, load_params, get_skip_regexp,
+    load_paths, load_subjects, load_params, get_halfvec, get_skip_regexp,
     get_slug, compute_epoch_offsets, yamload)

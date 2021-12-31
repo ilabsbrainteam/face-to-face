@@ -16,10 +16,11 @@ import xarray as xr
 import mne
 from mne_connectivity.viz import plot_connectivity_circle
 
-from f2f_helpers import load_paths, load_params, get_skip_regexp
+from f2f_helpers import load_paths, load_params, get_skip_regexp, get_halfvec
 
 # flags
 n_sec = 7  # epoch duration to use
+strongest_edges = 0.01  # proportion of strongest edges to show
 
 # config paths
 data_root, subjects_dir, results_dir = load_paths()
@@ -93,12 +94,24 @@ for parcellation, roi_edges in roi_edge_dict.items():
                 node_colors = [label_dict[name].color for name in label_names]
 
                 # plot
-                n_lines = lambda_hat.size
                 node_angles = mne.viz.circular_layout(
                     label_names, node_order, start_pos=90,
                     group_boundaries=[0, len(lh_names)])
-                extreme = np.abs(lambda_sq).max().values
+                # be meticulous about our colormap limits. This ignores the
+                # degree values for each node (along the diagonal of the graph
+                # laplacian) because the circular graph won't show those anyway
+                # (they're not edges).
+                unique_edge_values = get_halfvec(lambda_sq, k=1)
+                extreme = np.abs(unique_edge_values).max()
+                # prevent full connectivity maps from being too messy to
+                # interpret
+                n_lines = (
+                    None if use_edge_rois else
+                    int(np.rint(strongest_edges * unique_edge_values.size)))
                 if cond_name == 'all_conds':
+                    # discard the sign; this is not a difference between
+                    # conditions so the sign is not meaningful (all edges will
+                    # be negative due to how the graph laplacian is defined)
                     lambda_sq = np.abs(lambda_sq)
                     cmap = 'Blues'
                     vlims = dict(vmin=0, vmax=extreme)
@@ -113,15 +126,24 @@ for parcellation, roi_edges in roi_edge_dict.items():
                     node_edgecolor='none', colormap=cmap, colorbar_size=0.4,
                     colorbar_pos=(1., 0.1), linewidth=1, **vlims)
                 fig.set_size_inches(8, 8)
-                subtitle = (
-                    'all conditions pooled (attend and ignore)'
-                    if cond_name == 'all_conds' else
-                    'difference between conditions (attend minus ignore)')
+                if cond_name == 'all_conds':
+                    measure = 'strength of'
+                    subtitle = '(all conditions pooled)'
+                else:
+                    measure = 'contribution to difference in'
+                    subtitle = '(attend minus ignore)'
+                pctile = ('ROI edges only' if use_edge_rois else
+                          'strongest '
+                          f'{int(100 * strongest_edges)}% of edges.')
                 title = (
-                    'Relative contribution to network connectivity,\n'
-                    f'{subtitle}\n'
+                    f'Relative {measure} network connectivity {subtitle},\n'
+                    f'{pctile}\n'
                     f'{parcellation} parcellation, {freq_band} band')
                 fig.suptitle(title)
+                for _ax in fig.axes:
+                    if _ax == ax:
+                        continue
+                    _ax.set_ylabel('Arbitrary units')
                 fpath = os.path.join(plot_dir,
                                      f'{slug}-connectivity-circle.pdf')
                 fig.savefig(fpath)
