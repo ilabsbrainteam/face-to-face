@@ -19,8 +19,8 @@ for _dir in (plot_dir,):
     os.makedirs(_dir, exist_ok=True)
 
 # load other config values
-parcellations = ('hickok_corbetta', 'aparc', 'aparc_sub', 'HCPMMP1_combined',
-                 'HCPMMP1')
+parcellations = ('f2f', 'hickok', 'friederici', 'corbetta', 'aparc',
+                 'aparc_sub', 'HCPMMP1_combined', 'HCPMMP1')
 surrogate = load_params(os.path.join(param_dir, 'surrogate.yaml'))
 Brain = mne.viz.get_brain_class()
 
