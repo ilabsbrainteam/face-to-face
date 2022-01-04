@@ -30,7 +30,7 @@ epo_dir = os.path.join(results_root_dir, 'epochs')
 param_dir = os.path.join('..', 'params')
 conn_dir = os.path.join(results_dir, 'envelope-correlations')
 xarray_dir = os.path.join(results_dir, 'xarrays')
-stats_dir = os.path.join(results_dir, 'stats')
+stats_dir = os.path.join(results_dir, 'stats', 'node-level')
 for _dir in (stats_dir,):
     os.makedirs(_dir, exist_ok=True)
 

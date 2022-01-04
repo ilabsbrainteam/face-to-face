@@ -35,7 +35,7 @@ data_root, subjects_dir, results_dir = load_paths()
 epo_dir = os.path.join(results_root_dir, 'epochs')
 param_dir = os.path.join('..', 'params')
 xarray_dir = os.path.join(results_dir, 'xarrays')
-stats_dir = os.path.join(results_dir, 'stats')
+stats_dir = os.path.join(results_dir, 'stats', 'graph-level')
 plot_dir = os.path.join(results_dir, 'figs', 'graph-metrics')
 for _dir in (stats_dir, plot_dir,):
     os.makedirs(_dir, exist_ok=True)
