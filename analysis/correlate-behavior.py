@@ -12,6 +12,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.stats as ss
 import seaborn as sns
 import xarray as xr
 
@@ -64,26 +65,40 @@ for parcellation, roi_dict in all_roi_dicts.items():
         # prep predictors
         node_predictors = delta_roi_degree.to_pandas()
         beh_predictors = (beh.set_index('subj')
+                             .filter(items=node_predictors.index, axis='index')
                              .filter(regex=r'^(vocab|secondary)',
                                      axis='columns'))
-
         all_predictors = node_predictors.join(beh_predictors)
-
-        full_corrmat = pd.DataFrame(np.corrcoef(all_predictors, rowvar=False),
-                                    index=all_predictors.columns,
-                                    columns=all_predictors.columns)
-        corrmat = (full_corrmat
-                   .filter(node_predictors.columns, axis='index')
-                   .filter(beh_predictors.columns, axis='columns'))
+        n = all_predictors.shape[0]
+        # compute correlations and p-values
+        full_corrmat = all_predictors.corr('pearson')
+        corrmat = (full_corrmat.filter(node_predictors.columns, axis='index')
+                               .filter(beh_predictors.columns, axis='columns'))
+        # next 2 lines adapted from docstring of ss.pearsonr()
+        distribution = ss.beta(n/2 - 1, n/2 - 1, loc=-1, scale=2)
+        pvals = pd.DataFrame(2 * distribution.cdf(-np.abs(corrmat)),
+                             index=corrmat.index,
+                             columns=corrmat.columns)
+        sidak_thresh = 1 - (0.95) ** (1 / corrmat.size)
+        pval_text = pvals.applymap(
+            lambda x: f'p={x:.2f}{" *" if x <= sidak_thresh else ""}')
+        annot = corrmat.applymap(lambda x: f'r={x:.2f}\n') + pval_text
+        annot = annot.applymap(lambda x: x.replace('-', '−'))  # typography
 
         fig, ax = plt.subplots()
-        sns.heatmap(corrmat, square=False, ax=ax, cmap='RdBu', vmin=-1, vmax=1)
+        sns.heatmap(
+            corrmat, square=False, ax=ax, annot=annot, fmt='',
+            annot_kws=dict(size='smaller'), cmap='RdBu', vmin=-1, vmax=1)
         ax.set_xticklabels(
             ['\n'.join(lab.split('_')) for lab in beh_predictors.columns],
             rotation=0)
-        title = 'Pearson correlations: Δ Degree (attend−ignore) vs vocab score'
-        fig.suptitle(title, weight='bold', size='larger')
+        parc = (parcellation.upper() if parcellation == 'f2f' else
+                parcellation.capitalize())
+        band = freq_band.replace('_', ' ')
+        title = ('Pearson correlations: Δ Degree (attend−ignore) vs '
+                 f'behavioral measures\n{parc} parcellation, {band} band')
+        fig.suptitle(title, size='larger')
         fig.set_size_inches(7, 7)
-        fig.subplots_adjust(left=0.2, right=0.95, bottom=0.15)
+        fig.subplots_adjust(left=0.25, right=0.95, bottom=0.15)
         fname = f'{parcellation}-{freq_band}_band-degree-vs-vocab.pdf'
         fig.savefig(os.path.join(plot_dir, fname))

@@ -135,10 +135,13 @@ for parcellation, roi_edges in roi_edge_dict.items():
                 pctile = ('ROI edges only' if use_edge_rois else
                           'strongest '
                           f'{int(100 * strongest_edges)}% of edges.')
+                parc = (parcellation.upper() if parcellation == 'f2f' else
+                        parcellation.capitalize())
+                band = freq_band.replace('_', ' ')
                 title = (
                     f'Relative {measure} network connectivity {subtitle},\n'
                     f'{pctile}\n'
-                    f'{parcellation} parcellation, {freq_band} band')
+                    f'{parc} parcellation, {band} band')
                 fig.suptitle(title)
                 for _ax in fig.axes:
                     if _ax == ax:
